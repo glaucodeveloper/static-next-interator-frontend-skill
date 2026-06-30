@@ -1,6 +1,6 @@
 ---
 name: static-next-interator-frontend
-description: Use when building JavaScript frontends without frameworks where generator `*program` functions compose the application and stateful flows, while purely functional components are iterators with `next()`.
+description: Use when building JavaScript frontends without frameworks where stateful components own `create()` plus `*program()`, while purely functional components are iterators with `next()`.
 ---
 
 # Generator Frontend Programs
@@ -12,7 +12,7 @@ Criar frontends JavaScript sem framework onde `function*` / `*program` e a forma
 A regra central:
 
 - o app inteiro e um programa generator
-- componentes com estado, boot steps ou sequencia tambem podem ser programas generator
+- componentes com estado, boot steps ou sequencia usam `create()` + `*program()`
 - componentes puramente funcionais sao iterators simples com `next(message)`
 - cada `yield` produz uma peca-step concreta do app ou do componente
 - `.next(input)` injeta evento, estado ou resultado da etapa anterior
@@ -77,26 +77,49 @@ O app program decide a ordem de composicao. O driver so interpreta os steps.
 
 ## Programas de Componentes
 
-Use `*program` para componentes com estado interno, boot steps ou sequencia propria.
+Use `create()` + `*program` para componentes com estado interno, boot steps ou sequencia propria.
+
+A funcao `create()` pertence ao componente. Ela cria o iterator vivo, registra por `id`, consome os primeiros yields (`mount` e `events`) e retorna a funcao de montagem. O driver externo nao deve conhecer nem consumir esse protocolo interno.
 
 ```js
 const CounterProgram = {
+  events: {},
+
   *program(id) {
     let state = { counting: 0 };
 
-    yield { type: "mount", id };
-    yield { type: "events", id };
+    yield function mount(target = document.body, position = "beforeend") {
+      const program = window.counterPrograms[id];
+      target.insertAdjacentHTML(position, program.next().value);
+    };
+
+    yield {
+      increment() {
+        const program = window.counterPrograms[id];
+        const el = document.querySelector(`#${CSS.escape(id)}`);
+        if (!program || !el) return;
+        el.outerHTML = program.next({ counting: state.counting + 1 }).value;
+      },
+    };
 
     while (true) {
-      const input = yield {
-        type: "html",
-        id,
-        value: `<section id="${id}">${state.counting}</section>`,
-      };
+      const input = yield `<section id="${id}">${state.counting}</section>`;
 
       state = Object.assign(state, input || {});
     }
   },
+
+  create(id) {
+    const program = this.program(id);
+
+    window.counterPrograms = window.counterPrograms || {};
+    window.counterPrograms[id] = program;
+
+    const mount = program.next().value;
+    this.events[id] = program.next().value;
+
+    return mount;
+  }
 };
 ```
 
@@ -179,21 +202,23 @@ O driver executa steps. Ele nao deve esconder a arquitetura.
 
 Responsabilidades do driver:
 
-- criar iterators vivos
+- criar ou receber iterators vivos via API publica dos componentes
 - resolver root DOM
 - montar HTML
 - aplicar `outerHTML`
 - normalizar eventos em mensagens
 - chamar `.next(input)` nos programas corretos
+- chamar `component.create(id)` quando o componente stateful expor essa API
 
 ## Regras
 
 ### Faca
 
-- Modele o app e componentes com estado/sequencia como `*program`.
+- Modele componentes com estado/sequencia como `create()` + `*program()`.
 - Modele componentes puramente funcionais como iterators com `next()`.
 - Trate cada `yield` como peca algoritmica concreta.
 - Use driver pequeno para executar os steps.
+- Deixe `create()` do componente consumir `mount` e `events` dos stateful components.
 - Guarde iterators vivos por `id`.
 - Use `program.next(input).value` para avancar programas.
 - Use `outerHTML` quando o HTML gerado contem o elemento raiz.
@@ -214,7 +239,7 @@ Responsabilidades do driver:
 ## Glossario
 
 - `AppProgram`: generator que compoe o app inteiro.
-- `ComponentProgram`: generator que produz um componente vivo com estado ou sequencia.
+- `ComponentProgram`: componente stateful com `create()` e `*program()`.
 - `FunctionalComponent`: iterator simples com `next()` para componentes puros.
 - `program`: iterator vivo retornado por `*program(...)`.
 - `yield step`: saida de uma etapa concreta.

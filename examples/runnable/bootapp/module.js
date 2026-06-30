@@ -87,6 +87,7 @@ function executeStep(step, context) {
   if (step.type === "createInterator") return createInterator();
 
   if (step.type === "createComponent") {
+    if (step.component.create) return step.component.create(step.id);
     if (step.component.program) return step.component.program(step.id);
     return step.component({ id: step.id });
   }

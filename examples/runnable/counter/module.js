@@ -17,40 +17,32 @@ const CounterProgram = {
 
     const idRef = JSON.stringify(id);
 
-    yield {
-      type: "mount",
-      id,
-      mount(target = document.body, position = "beforeend") {
-        const program = window.counterPrograms[id];
-        target.insertAdjacentHTML(position, program.next().value.value);
-      },
+    yield function mount(target = document.body, position = "beforeend") {
+      const program = window.counterPrograms[id];
+      target.insertAdjacentHTML(position, program.next().value);
     };
 
     yield {
-      type: "events",
-      id,
-      events: {
-        addCountingState(number) {
-          const program = window.counterPrograms[id];
-          const el = document.querySelector(`#${CSS.escape(id)}`);
+      addCountingState(number) {
+        const program = window.counterPrograms[id];
+        const el = document.querySelector(`#${CSS.escape(id)}`);
 
-          if (!program || !el) return;
+        if (!program || !el) return;
 
-          el.outerHTML = program.next({
-            counting: number,
-          }).value.value;
-        },
+        el.outerHTML = program.next({
+          counting: number,
+        }).value;
+      },
 
-        resetCountingState() {
-          const program = window.counterPrograms[id];
-          const el = document.querySelector(`#${CSS.escape(id)}`);
+      resetCountingState() {
+        const program = window.counterPrograms[id];
+        const el = document.querySelector(`#${CSS.escape(id)}`);
 
-          if (!program || !el) return;
+        if (!program || !el) return;
 
-          el.outerHTML = program.next({
-            counting: 0,
-          }).value.value;
-        },
+        el.outerHTML = program.next({
+          counting: 0,
+        }).value;
       },
     };
 
@@ -63,37 +55,32 @@ const CounterProgram = {
         `CounterProgram.events[${idRef}].resetCountingState()`
       );
 
-      const newState = yield {
-        type: "html",
-        id,
-        value: `
+      const newState = yield `
           <div id="${escapeHtmlAttr(id)}">
             <span>${state.counting}</span>
             <button onclick="${addHandler}">click!</button>
             <button onclick="${resetHandler}">reset</button>
           </div>
-        `,
-      };
+        `;
 
       state = Object.assign(state, newState || {});
     }
   },
+
+  create(id) {
+    const program = this.program(id);
+
+    window.counterPrograms = window.counterPrograms || {};
+    window.counterPrograms[id] = program;
+
+    const mount = program.next().value;
+    this.events[id] = program.next().value;
+
+    return mount;
+  },
 };
 
-function runComponent(componentProgram, id, target = document.body) {
-  const program = componentProgram.program(id);
-
-  window.counterPrograms = window.counterPrograms || {};
-  window.counterPrograms[id] = program;
-
-  const mountStep = program.next().value;
-  const eventsStep = program.next().value;
-
-  componentProgram.events[id] = eventsStep.events;
-  mountStep.mount(target);
-
-  return program;
-}
-
 window.CounterProgram = CounterProgram;
-runComponent(CounterProgram, "counter-1");
+
+const mountCounter = CounterProgram.create("counter-1");
+mountCounter(document.body);
