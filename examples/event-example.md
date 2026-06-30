@@ -14,11 +14,11 @@
   Favoritar
 </button>
 
-<form data-cid="announce" data-message="announce">
+<form data-cid="announce" data-message="submitForm">
   <input name="ownerName" required>
   <input name="phone" required>
   <button type="submit">Enviar</button>
 </form>
 ```
 
-The runtime can normalize those DOM interactions into messages and pass them to `component.next(message)`.
+The runtime or interator normalizes those DOM interactions into messages and passes them to `component.next(message)`.

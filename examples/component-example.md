@@ -2,17 +2,18 @@
 
 ```js
 const CounterComponent = ({ id, props }) => {
-  let count = 0;
+  let count = props.initialCount ?? 0;
 
   return {
     next(message = {}) {
       if (message.type === "increment") count += 1;
       if (message.type === "reset") count = 0;
+      if (message.type === "hydrate") count = message.value ?? count;
 
       return {
         done: false,
         value: `
-          <section class="counter">
+          <section class="counter" data-component="${id}">
             <p>Total: ${count}</p>
             <button type="button" data-cid="${id}" data-message="increment">+</button>
             <button type="button" data-cid="${id}" data-message="reset">Reset</button>
@@ -28,4 +29,5 @@ const CounterComponent = ({ id, props }) => {
 Notes:
 
 - Local state stays in the closure.
-- Cross-component actions such as `navigate` can be delegated through props or the runtime.
+- Component knowledge stays local.
+- Cross-component actions such as `navigate` should be handled by an interator or the runtime.

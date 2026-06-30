@@ -2,34 +2,39 @@
 
 ## Why this exists
 
-This style treats the frontend as an explicit runtime plus plain JavaScript components.
+This style treats the frontend as an explicit runtime plus plain JavaScript layers.
 It is useful when you want:
 
 - low build complexity
 - easy view-source debugging
 - deterministic state transitions
 - direct control over routing and events
-- components without framework ceremony
+- component boundaries that stay local
+- program assembly that can be read as a sequence of steps
 
 ## Principles
 
 ### 1. Boot layer first
 
-The runtime is the spine of the app. It wires routes, state, persistence, and component instances.
+The runtime is the spine of the app. It wires routes, interators, state, persistence, and component instances.
 
-### 2. Components are message handlers
+### 2. Components are local decision units
 
-The component contract is not "mount lifecycle"; it is "receive message, update local state, return markup".
+A component does not own the whole app. It receives a message, updates local state, and returns markup.
 
-### 3. Events are serialized intent
+### 3. Interators own the system concerns
 
-DOM events should be translated into messages such as `navigate`, `announce`, `deleteItem`, and `logout`.
+Events, atomic global state, routing, and cross-component effects belong to interators, not to random components.
 
-### 4. Shared behavior is injected
+### 4. Events are serialized intent
 
-Navigation, auth, persistence, and global lookups should come from `props` or tools passed by `bootapp`.
+DOM events should become messages such as `navigate`, `announce`, `deleteItem`, and `logout`.
 
-### 5. Static-first wins
+### 5. Generators make program production explicit
+
+When program construction matters, use `function*` and `yield` to model each piece-step of the program.
+
+### 6. Static-first wins
 
 Prefer HTML strings, closure state, and a small number of conventions over deep abstraction layers.
 
@@ -40,3 +45,4 @@ Prefer HTML strings, closure state, and a small number of conventions over deep 
 - view logic mixed with persistence details
 - pseudo-React lifecycle patterns inside plain JS
 - multiple competing app shells
+- implicit boot sequences that cannot be inspected step by step

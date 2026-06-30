@@ -29,6 +29,12 @@ The recommended event protocol is attribute-driven.
 }
 ```
 
+## Routing rule
+
+- The runtime or interator normalizes DOM interaction into a message.
+- The component receives the message only after normalization.
+- Shared atomic state updates belong to the interator layer.
+
 ## Naming
 
 - Prefer intent-first verbs.

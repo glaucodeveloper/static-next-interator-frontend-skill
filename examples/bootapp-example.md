@@ -1,10 +1,15 @@
 # Bootapp Example
 
 ```js
-const bootApp = (rootSelector = "#app") => {
+const bootApp = ({ rootSelector = "#app" } = {}) => {
   const root = document.querySelector(rootSelector);
   const components = new Map();
-  const routeState = { route: "home" };
+  const interator = createInteractor({
+    state: { route: "home" },
+    persist(value) {
+      localStorage.setItem("app-state", JSON.stringify(value));
+    },
+  });
 
   const add = (id, factory, props = {}) => {
     const instance = factory({ id, props });
@@ -15,7 +20,7 @@ const bootApp = (rootSelector = "#app") => {
   const render = () => {
     root.innerHTML = `
       ${components.get("topbar").next().value}
-      <main>${components.get(routeState.route).next().value}</main>
+      <main>${components.get(interator.getAtoms().route).next().value}</main>
     `;
   };
 
@@ -23,14 +28,21 @@ const bootApp = (rootSelector = "#app") => {
     const component = components.get(target.dataset.cid);
     if (!component) return;
 
-    component.next({
+    const message = {
       ...target.dataset,
       type: target.dataset.message,
       value: target.dataset.value ?? target.value,
       target,
       event,
-    });
+    };
 
+    if (message.type === "navigate") {
+      interator.dispatch(message);
+      render();
+      return;
+    }
+
+    component.next(message);
     render();
   };
 
@@ -41,7 +53,7 @@ const bootApp = (rootSelector = "#app") => {
 
   add("topbar", TopbarComponent, {
     goToRoute(route) {
-      routeState.route = route;
+      interator.dispatch({ type: "navigate", route });
     },
   });
 
@@ -51,4 +63,4 @@ const bootApp = (rootSelector = "#app") => {
 };
 ```
 
-This keeps orchestration centralized and components small.
+This keeps orchestration centralized and pushes shared effects into the interator.
