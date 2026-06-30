@@ -13,7 +13,7 @@ Each `yield` is one algorithmic piece-step.
 - create the interator layer
 - register component factories
 - wire event delegation
-- hydrate or restore atomic state
+- hydrate or restore shared state
 - mount the first render
 
 ## Example

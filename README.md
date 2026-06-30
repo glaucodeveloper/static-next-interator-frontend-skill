@@ -3,7 +3,7 @@
 Skill e microfilosofia para um frontend estatico em JavaScript com tres camadas claras:
 
 - componentes para estado local e renderizacao de UI
-- interators para eventos, estados atomicos globais e coordenacao
+- interators para eventos, estado compartilhado e coordenacao
 - generators para producao passo a passo do programa
 
 ## Conteudo

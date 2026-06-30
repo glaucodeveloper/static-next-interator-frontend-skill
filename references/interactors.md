@@ -1,11 +1,11 @@
 # Interators
 
-Interators are the coordination layer between DOM events, atomic global state, and components.
+Interators are the coordination layer between DOM events, shared runtime state, and components.
 
 ## Responsibilities
 
 - normalize DOM events into messages
-- hold atomic shared state such as route, selection, auth, and cache records
+- hold shared runtime state such as route, selection, auth, and cache records
 - expose helpers to components through `props`
 - publish state changes back to the boot runtime
 - keep cross-component effects explicit
@@ -28,21 +28,21 @@ Interators are the coordination layer between DOM events, atomic global state, a
 ## Shape
 
 ```js
-const createInteractor = ({ state, persist }) => {
-  const atoms = {
+const createInteractor = ({ persist }) => {
+  const state = {
     route: "home",
     selection: null,
   };
 
   return {
     dispatch(message) {
-      if (message.type === "navigate") atoms.route = message.route;
-      if (message.type === "select") atoms.selection = message.value;
-      persist(atoms);
-      return atoms;
+      if (message.type === "navigate") state.route = message.route;
+      if (message.type === "select") state.selection = message.value;
+      persist(state);
+      return state;
     },
-    getAtoms() {
-      return atoms;
+    getState() {
+      return state;
     },
   };
 };

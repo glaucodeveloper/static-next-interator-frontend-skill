@@ -16,7 +16,7 @@ It is useful when you want:
 
 ### 1. Boot layer first
 
-The runtime is the spine of the app. It wires routes, interators, state, persistence, and component instances.
+The runtime is the spine of the app. It wires routes, interators, shared state, persistence, and component instances.
 
 ### 2. Components are local decision units
 
@@ -24,7 +24,7 @@ A component does not own the whole app. It receives a message, updates local sta
 
 ### 3. Interators own the system concerns
 
-Events, atomic global state, routing, and cross-component effects belong to interators, not to random components.
+Events, shared runtime state, routing, and cross-component effects belong to interators, not to random components.
 
 ### 4. Events are serialized intent
 

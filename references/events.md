@@ -33,7 +33,7 @@ The recommended event protocol is attribute-driven.
 
 - The runtime or interator normalizes DOM interaction into a message.
 - The component receives the message only after normalization.
-- Shared atomic state updates belong to the interator layer.
+- Shared runtime state updates belong to the interator layer.
 
 ## Naming
 
