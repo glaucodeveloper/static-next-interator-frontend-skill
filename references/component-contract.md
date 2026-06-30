@@ -1,28 +1,34 @@
 # Component Contract
 
-Canonical shape:
+Canonical local component:
 
 ```js
-const ExampleComponent = ({ id, props }) => {
-  let state = null;
+const CounterComponent = {
+  create({ id, props = {} }) {
+    let state = { counting: props.initialCount ?? 0 };
 
-  return {
-    next(message = {}) {
-      if (message.type === "doSomething") state = message.value;
+    return {
+      next(message = {}) {
+        if (message.type === "increment") state.counting += 1;
+        if (message.type === "reset") state.counting = 0;
 
-      return {
-        done: false,
-        value: `<section data-component="${id}">${state ?? ""}</section>`,
-      };
-    },
-  };
+        return {
+          done: false,
+          value: `
+            <section id="${id}">
+              <span>${state.counting}</span>
+              <button data-cid="${id}" data-message="increment">click</button>
+            </section>
+          `,
+        };
+      },
+    };
+  },
 };
 ```
 
-Guidelines:
+Rules:
 
-- Receive dependencies through `props`.
-- Keep closure state private and minimal.
-- Return markup every time `next()` runs.
-- Keep the component concerned only with its own UI decisions.
-- Let interators handle cross-component state, event transport, and global coordination.
+- state stays local
+- `next(message)` returns markup
+- globals stay outside the component

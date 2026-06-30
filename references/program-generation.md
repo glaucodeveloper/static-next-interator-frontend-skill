@@ -1,34 +1,23 @@
 # Program Generation
 
-A frontend can be produced as a generator pipeline.
+Use `function*` when the program must be produced step by step.
 
-## Idea
+Common steps:
 
-`function*` is useful when each stage of the program should be explicit and inspectable.
-Each `yield` is one algorithmic piece-step.
-
-## Step types
-
-- resolve the root node
-- create the interator layer
-- register component factories
+- resolve root DOM
+- create interator
+- register components
 - wire event delegation
-- hydrate or restore shared state
-- mount the first render
-
-## Example
+- hydrate global state
+- mount first render
 
 ```js
-function* buildProgram({ rootSelector, createInteractor, registerComponent }) {
-  const root = yield { type: "resolveRoot", root: document.querySelector(rootSelector) };
-  const interator = yield { type: "createInteractor", interator: createInteractor() };
-  yield { type: "registerComponent", id: "home" };
+function* buildFrontendProgram({ rootSelector }) {
+  const root = yield { type: "resolveRoot", rootSelector };
+  const interator = yield { type: "createInterator" };
   yield { type: "registerComponent", id: "topbar" };
+  yield { type: "registerComponent", id: "home" };
   yield { type: "wireEvents", root, interator };
   return { type: "ready", root, interator };
 }
 ```
-
-## Rule of thumb
-
-Use generator production when you want the program to read like a build log that is also executable.

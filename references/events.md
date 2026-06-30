@@ -1,42 +1,30 @@
 # Events
 
-The recommended event protocol is attribute-driven.
-
-## Required
+Recommended DOM protocol:
 
 - `data-cid`
 - `data-message`
-
-## Common payload attributes
-
 - `data-route`
 - `data-value`
-- `data-property-id`
 - `data-name`
 
-## Message shape
+Message shape:
 
 ```js
 {
   ...target.dataset,
   type: target.dataset.message,
-  name: target.dataset.name || target.name,
   value: target.dataset.value ?? target.value,
   checked: target.checked,
-  fields,
   target,
-  event
+  event,
 }
 ```
 
-## Routing rule
+Flow:
 
-- The runtime or interator normalizes DOM interaction into a message.
-- The component receives the message only after normalization.
-- Shared runtime state updates belong to the interator layer.
-
-## Naming
-
-- Prefer intent-first verbs.
-- Avoid DOM-coupled labels like `onClickCard`.
-- Keep names stable across components when the semantic action is the same.
+1. DOM emits interaction.
+2. Runtime or interator normalizes message.
+3. Interator resolves global impact.
+4. Component handles local impact.
+5. Runtime rerenders.

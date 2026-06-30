@@ -13,12 +13,4 @@
 >
   Favoritar
 </button>
-
-<form data-cid="announce" data-message="submitForm">
-  <input name="ownerName" required>
-  <input name="phone" required>
-  <button type="submit">Enviar</button>
-</form>
 ```
-
-The runtime or interator normalizes those DOM interactions into messages and passes them to `component.next(message)`.

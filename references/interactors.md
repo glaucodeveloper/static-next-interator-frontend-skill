@@ -1,53 +1,35 @@
 # Interators
 
-Interators are the coordination layer between DOM events, shared runtime state, and components.
+Interators coordinate:
 
-## Responsibilities
+- event system
+- routing
+- session
+- persistence
+- atomic global state
+- synchronization between components
 
-- normalize DOM events into messages
-- hold shared runtime state such as route, selection, auth, and cache records
-- expose helpers to components through `props`
-- publish state changes back to the boot runtime
-- keep cross-component effects explicit
-
-## What stays here
-
-- routing state
-- session state
-- global flags
-- persistence access
-- event dispatch and fan-out
-
-## What does not stay here
-
-- view markup
-- component-local counters or toggles
-- low-level DOM rendering details
-- hidden singleton logic that bypasses the runtime
-
-## Shape
+Suggested shape:
 
 ```js
-const createInteractor = ({ persist }) => {
-  const state = {
+const createInterator = ({ persist }) => {
+  const atoms = {
     route: "home",
-    selection: null,
+    session: null,
+    selectedId: null,
   };
 
   return {
     dispatch(message) {
-      if (message.type === "navigate") state.route = message.route;
-      if (message.type === "select") state.selection = message.value;
-      persist(state);
-      return state;
+      if (message.type === "navigate") atoms.route = message.route;
+      if (message.type === "select") atoms.selectedId = message.value;
+      if (message.type === "login") atoms.session = message.session;
+      persist?.(atoms);
+      return atoms;
     },
-    getState() {
-      return state;
+    getAtoms() {
+      return atoms;
     },
   };
 };
 ```
-
-## Rule of thumb
-
-If two or more components need the same truth, put it in an interator.

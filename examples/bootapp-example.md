@@ -4,15 +4,17 @@
 const bootApp = ({ rootSelector = "#app" } = {}) => {
   const root = document.querySelector(rootSelector);
   const components = new Map();
-  const interator = createInteractor({
-    state: { route: "home" },
-    persist(value) {
-      localStorage.setItem("app-state", JSON.stringify(value));
+  const interator = createInterator({
+    persist(atoms) {
+      localStorage.setItem("app-atoms", JSON.stringify(atoms));
     },
   });
 
   const add = (id, factory, props = {}) => {
-    const instance = factory({ id, props });
+    const instance = factory.create
+      ? factory.create({ id, props, interator })
+      : factory({ id, props, interator });
+
     components.set(id, instance);
     return instance;
   };
@@ -25,9 +27,6 @@ const bootApp = ({ rootSelector = "#app" } = {}) => {
   };
 
   const dispatch = (target, event) => {
-    const component = components.get(target.dataset.cid);
-    if (!component) return;
-
     const message = {
       ...target.dataset,
       type: target.dataset.message,
@@ -36,13 +35,11 @@ const bootApp = ({ rootSelector = "#app" } = {}) => {
       event,
     };
 
-    if (message.type === "navigate") {
-      interator.dispatch(message);
-      render();
-      return;
-    }
+    interator.dispatch(message);
 
-    component.next(message);
+    const component = components.get(target.dataset.cid);
+    if (component) component.next(message);
+
     render();
   };
 
@@ -51,16 +48,6 @@ const bootApp = ({ rootSelector = "#app" } = {}) => {
     if (actionTarget) dispatch(actionTarget, event);
   });
 
-  add("topbar", TopbarComponent, {
-    goToRoute(route) {
-      interator.dispatch({ type: "navigate", route });
-    },
-  });
-
-  add("home", HomeComponent);
-  add("favoritos", FavoritesComponent);
-  render();
+  return { add, render, interator };
 };
 ```
-
-This keeps orchestration centralized and pushes shared effects into the interator.
