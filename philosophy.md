@@ -1,11 +1,11 @@
 # Philosophy
 
-This skill follows one simple separation:
+The application is a generator program.
 
-- component decides local UI
-- interator decides events and globals
-- generator decides program sequence
+Stateful or staged components can be generator programs.
 
-Use it when you want explicit frontend construction without framework lifecycle or build-heavy abstraction.
+Pure functional components are iterators with `next()`.
 
-Avoid turning components into global coordinators or using generators as syntax ornament without clear program steps.
+The runtime is only a driver. It interprets yielded steps, stores live iterators, forwards events through `.next(input)`, and applies the produced HTML.
+
+This keeps frontend construction explicit: composition, mounting, event binding, rendering, and updates are visible as steps instead of being hidden inside an imperative app shell.

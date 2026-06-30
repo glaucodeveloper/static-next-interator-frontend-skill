@@ -1,5 +1,7 @@
 # Events
 
+Events are inputs passed back into live programs.
+
 Recommended DOM protocol:
 
 - `data-cid`
@@ -24,7 +26,7 @@ Message shape:
 Flow:
 
 1. DOM emits interaction.
-2. Runtime or interator normalizes message.
-3. Interator resolves global impact.
-4. Component handles local impact.
-5. Runtime rerenders.
+2. Driver normalizes message.
+3. Interator handles global effects.
+4. Driver calls `program.next(message)` on the component program.
+5. Driver applies the yielded HTML.

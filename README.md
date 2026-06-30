@@ -1,17 +1,16 @@
 # Static Next Interator Frontend
 
-Skill e microfilosofia para frontends JavaScript sem framework guiados por:
+Skill e exemplos para frontends JavaScript sem framework onde `*program` compoe:
 
-- componentes locais
-- interators para coordenacao
-- generators como producao do programa
+- o app inteiro
+- cada etapa concreta por `yield`
 
-Base unica: `F:\SKILL_generator_frontend_components.md`
+Componentes puramente funcionais usam iterators com `next()`.
 
 ## Conteudo
 
 - `SKILL.md`: skill principal
-- `philosophy.md`: leitura curta dos principios
-- `examples/`: exemplos minimos
+- `philosophy.md`: leitura curta do paradigma
+- `examples/`: exemplos em Markdown
 - `examples/runnable/`: exemplos executaveis em HTML + JS
 - `references/`: contrato e guias operacionais

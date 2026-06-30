@@ -7,7 +7,7 @@ Interators coordinate:
 - session
 - persistence
 - atomic global state
-- synchronization between components
+- synchronization between component programs
 
 Suggested shape:
 
