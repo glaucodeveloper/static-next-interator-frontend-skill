@@ -15,50 +15,49 @@ const LabelComponent = ({ id, props = {} }) => ({
 });
 ```
 
-Stateful component as generator program:
+Stateful component as `create()` + `*frontend()`:
 
 ```js
-const CounterProgram = {
+const CounterComponent = {
+  frontends: {},
   events: {},
 
-  *program(id) {
+  *frontend(id) {
     let state = { counting: 0 };
 
     yield function mount(target = document.body, position = "beforeend") {
-      const program = window.counterPrograms[id];
-      target.insertAdjacentHTML(position, program.next().value);
+      const frontend = CounterComponent.frontends[id];
+      target.insertAdjacentHTML(position, frontend.next().value);
     };
 
     yield {
       increment() {
-        const program = window.counterPrograms[id];
+        const frontend = CounterComponent.frontends[id];
         const el = document.querySelector(`#${CSS.escape(id)}`);
-        if (!program || !el) return;
-        el.outerHTML = program.next({ counting: state.counting + 1 }).value;
+        if (!frontend || !el) return;
+        el.outerHTML = frontend.next({ counting: state.counting + 1 }).value;
       },
     };
 
     while (true) {
       const input = yield `
-          <section id="${id}">
-            <span>${state.counting}</span>
-            <button onclick="CounterProgram.events[${JSON.stringify(id)}].increment()">click</button>
-          </section>
-        `;
+        <section id="${id}">
+          <span>${state.counting}</span>
+          <button onclick="CounterComponent.events[${JSON.stringify(id)}].increment()">click</button>
+        </section>
+      `;
 
-      if (input?.type === "increment") state.counting += 1;
-      if (input?.type === "reset") state.counting = 0;
+      state = Object.assign(state, input || {});
     }
   },
 
   create(id) {
-    const program = this.program(id);
+    const frontend = this.frontend(id);
 
-    window.counterPrograms = window.counterPrograms || {};
-    window.counterPrograms[id] = program;
+    this.frontends[id] = frontend;
 
-    const mount = program.next().value;
-    this.events[id] = program.next().value;
+    const mount = frontend.next().value;
+    this.events[id] = frontend.next().value;
 
     return mount;
   },

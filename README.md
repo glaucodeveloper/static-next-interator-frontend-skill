@@ -1,11 +1,10 @@
 # Static Next Interator Frontend
 
-Skill e exemplos para frontends JavaScript sem framework onde `*program` compoe:
+Skill e exemplos para frontends JavaScript sem framework onde:
 
-- o app inteiro
-- cada etapa concreta por `yield`
-
-Componentes puramente funcionais usam iterators com `next()`.
+- componentes stateful usam `create()` + `*frontend()`
+- componentes funcionais usam iterators com `next()`
+- a composicao do app pode ser um `AppFrontend`
 
 ## Conteudo
 

@@ -1,10 +1,10 @@
 # Driver Example
 
-`bootApp` is not the paradigm. It is only a driver for `AppProgram`.
+`bootApp` is not the paradigm. It is only a driver for `AppFrontend`.
 
 ```js
-function runApp(appProgram) {
-  const app = appProgram.program();
+function runApp(appFrontend) {
+  const app = appFrontend.frontend();
   let step = app.next();
 
   while (!step.done) {
@@ -14,4 +14,4 @@ function runApp(appProgram) {
 }
 ```
 
-The app composition belongs in `AppProgram`.
+The app composition belongs in `AppFrontend`.

@@ -1,6 +1,6 @@
 # Events
 
-Events are inputs passed back into live programs.
+Events are inputs passed back into live frontends or functional iterators.
 
 Recommended DOM protocol:
 
@@ -28,5 +28,5 @@ Flow:
 1. DOM emits interaction.
 2. Driver normalizes message.
 3. Interator handles global effects.
-4. Driver calls `program.next(message)` on the component program.
-5. Driver applies the yielded HTML.
+4. Driver calls `.next(message)` on the target iterator.
+5. Driver applies the yielded or returned HTML.

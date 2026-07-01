@@ -1,11 +1,9 @@
 # Philosophy
 
-The application is a generator program.
+Stateful components own their frontend lifecycle.
 
-Stateful or staged components can be generator programs.
+The component's `create()` function creates the live frontend iterator, consumes `mount` and `events`, and returns the mount function. External drivers should treat the component through that public API.
 
-Pure functional components are iterators with `next()`.
+Functional components stay simple: they return an iterator with `next()`.
 
-The runtime is only a driver. It interprets yielded steps, stores live iterators, forwards events through `.next(input)`, and applies the produced HTML.
-
-This keeps frontend construction explicit: composition, mounting, event binding, rendering, and updates are visible as steps instead of being hidden inside an imperative app shell.
+App composition can be an `AppFrontend`, but component internals remain component-owned.

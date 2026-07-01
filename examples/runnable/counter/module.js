@@ -7,10 +7,11 @@ function escapeHtmlAttr(value) {
     .replaceAll(">", "&gt;");
 }
 
-const CounterProgram = {
+const CounterComponent = {
+  frontends: {},
   events: {},
 
-  *program(id) {
+  *frontend(id) {
     let state = {
       counting: 0,
     };
@@ -18,29 +19,29 @@ const CounterProgram = {
     const idRef = JSON.stringify(id);
 
     yield function mount(target = document.body, position = "beforeend") {
-      const program = window.counterPrograms[id];
-      target.insertAdjacentHTML(position, program.next().value);
+      const frontend = CounterComponent.frontends[id];
+      target.insertAdjacentHTML(position, frontend.next().value);
     };
 
     yield {
       addCountingState(number) {
-        const program = window.counterPrograms[id];
+        const frontend = CounterComponent.frontends[id];
         const el = document.querySelector(`#${CSS.escape(id)}`);
 
-        if (!program || !el) return;
+        if (!frontend || !el) return;
 
-        el.outerHTML = program.next({
+        el.outerHTML = frontend.next({
           counting: number,
         }).value;
       },
 
       resetCountingState() {
-        const program = window.counterPrograms[id];
+        const frontend = CounterComponent.frontends[id];
         const el = document.querySelector(`#${CSS.escape(id)}`);
 
-        if (!program || !el) return;
+        if (!frontend || !el) return;
 
-        el.outerHTML = program.next({
+        el.outerHTML = frontend.next({
           counting: 0,
         }).value;
       },
@@ -48,39 +49,38 @@ const CounterProgram = {
 
     while (true) {
       const addHandler = escapeHtmlAttr(
-        `CounterProgram.events[${idRef}].addCountingState(${state.counting + 1})`
+        `CounterComponent.events[${idRef}].addCountingState(${state.counting + 1})`
       );
 
       const resetHandler = escapeHtmlAttr(
-        `CounterProgram.events[${idRef}].resetCountingState()`
+        `CounterComponent.events[${idRef}].resetCountingState()`
       );
 
       const newState = yield `
-          <div id="${escapeHtmlAttr(id)}">
-            <span>${state.counting}</span>
-            <button onclick="${addHandler}">click!</button>
-            <button onclick="${resetHandler}">reset</button>
-          </div>
-        `;
+        <div id="${escapeHtmlAttr(id)}">
+          <span>${state.counting}</span>
+          <button onclick="${addHandler}">click!</button>
+          <button onclick="${resetHandler}">reset</button>
+        </div>
+      `;
 
       state = Object.assign(state, newState || {});
     }
   },
 
   create(id) {
-    const program = this.program(id);
+    const frontend = this.frontend(id);
 
-    window.counterPrograms = window.counterPrograms || {};
-    window.counterPrograms[id] = program;
+    this.frontends[id] = frontend;
 
-    const mount = program.next().value;
-    this.events[id] = program.next().value;
+    const mount = frontend.next().value;
+    this.events[id] = frontend.next().value;
 
     return mount;
   },
 };
 
-window.CounterProgram = CounterProgram;
+window.CounterComponent = CounterComponent;
 
-const mountCounter = CounterProgram.create("counter-1");
+const mountCounter = CounterComponent.create("counter-1");
 mountCounter(document.body);

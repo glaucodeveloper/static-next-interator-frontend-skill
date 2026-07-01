@@ -1,5 +1,5 @@
-const TopbarProgram = {
-  *program(id) {
+const TopbarComponent = {
+  *frontend(id) {
     while (true) {
       yield {
         type: "html",
@@ -49,11 +49,11 @@ const createInterator = () => {
   };
 };
 
-const AppProgram = {
-  *program({ rootSelector = "#app" } = {}) {
+const AppFrontend = {
+  *frontend({ rootSelector = "#app" } = {}) {
     const root = yield { type: "resolveRoot", rootSelector };
     const interator = yield { type: "createInterator" };
-    const topbar = yield { type: "createComponent", id: "topbar", component: TopbarProgram };
+    const topbar = yield { type: "createComponent", id: "topbar", component: TopbarComponent };
     const home = yield { type: "createComponent", id: "home", component: HomeComponent };
     const favorites = yield { type: "createComponent", id: "favorites", component: FavoritesComponent };
 
@@ -73,12 +73,17 @@ const AppProgram = {
   },
 };
 
+function readHtml(component) {
+  const result = component.next().value;
+  return typeof result === "string" ? result : result.value;
+}
+
 function render(root, interator, children) {
   const route = interator.getAtoms().route;
 
   root.innerHTML = `
-    ${children.topbar.next().value.value}
-    <main>${children[route].next().value.value}</main>
+    ${readHtml(children.topbar)}
+    <main>${readHtml(children[route])}</main>
   `;
 }
 
@@ -88,7 +93,7 @@ function executeStep(step, context) {
 
   if (step.type === "createComponent") {
     if (step.component.create) return step.component.create(step.id);
-    if (step.component.program) return step.component.program(step.id);
+    if (step.component.frontend) return step.component.frontend(step.id);
     return step.component({ id: step.id });
   }
 
@@ -121,9 +126,9 @@ function executeStep(step, context) {
   return null;
 }
 
-function runApp(appProgram) {
+function runApp(appFrontend) {
   const context = {};
-  const app = appProgram.program();
+  const app = appFrontend.frontend();
   let cursor = app.next();
 
   while (!cursor.done) {
@@ -132,4 +137,4 @@ function runApp(appProgram) {
   }
 }
 
-runApp(AppProgram);
+runApp(AppFrontend);

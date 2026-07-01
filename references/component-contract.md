@@ -1,50 +1,57 @@
 # Component Contract
 
-Stateful or staged component program:
+## Stateful Component
 
 ```js
-const CounterProgram = {
+const CounterComponent = {
+  frontends: {},
   events: {},
 
-  *program(id) {
+  *frontend(id) {
     let state = { counting: 0 };
 
     yield function mount(target = document.body, position = "beforeend") {
-      const program = window.counterPrograms[id];
-      target.insertAdjacentHTML(position, program.next().value);
+      const frontend = CounterComponent.frontends[id];
+      target.insertAdjacentHTML(position, frontend.next().value);
     };
 
     yield {
       increment() {
-        const program = window.counterPrograms[id];
+        const frontend = CounterComponent.frontends[id];
         const el = document.querySelector(`#${CSS.escape(id)}`);
-        if (!program || !el) return;
-        el.outerHTML = program.next({ counting: state.counting + 1 }).value;
+        if (!frontend || !el) return;
+        el.outerHTML = frontend.next({ counting: state.counting + 1 }).value;
       },
     };
 
     while (true) {
       const input = yield `<section id="${id}">${state.counting}</section>`;
-
       state = Object.assign(state, input || {});
     }
   },
 
   create(id) {
-    const program = this.program(id);
+    const frontend = this.frontend(id);
 
-    window.counterPrograms = window.counterPrograms || {};
-    window.counterPrograms[id] = program;
+    this.frontends[id] = frontend;
 
-    const mount = program.next().value;
-    this.events[id] = program.next().value;
+    const mount = frontend.next().value;
+    this.events[id] = frontend.next().value;
 
     return mount;
   },
 };
 ```
 
-Pure functional component iterator:
+Rules:
+
+- `create(id)` creates and stores the live frontend iterator.
+- `create(id)` consumes the component boot yields: first `mount`, then `events`.
+- External app drivers should not manually consume a component's internal mount/events protocol.
+- Local state stays inside `*frontend`.
+- Generated HTML should include the root element when updates use `outerHTML`.
+
+## Functional Component
 
 ```js
 const LabelComponent = ({ id, props = {} }) => ({
@@ -58,14 +65,3 @@ const LabelComponent = ({ id, props = {} }) => ({
   },
 });
 ```
-
-Rules:
-
-- `create(id)` creates and stores the live component iterator.
-- `create(id)` consumes the component boot yields: first `mount`, then `events`.
-- External app drivers should not manually consume a component's internal mount/events protocol.
-- Functional components may directly return an iterator object with `next()`.
-- Local state stays inside the generator when using `*program`.
-- `yield` emits internal boot steps and HTML for generator components.
-- `.next(input)` updates the component.
-- Generated HTML should include the root element when updates use `outerHTML`.

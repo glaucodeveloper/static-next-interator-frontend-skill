@@ -1,131 +1,88 @@
 ---
 name: static-next-interator-frontend
-description: Use when building JavaScript frontends without frameworks where stateful components own `create()` plus `*program()`, while purely functional components are iterators with `next()`.
+description: Use when building JavaScript frontends without frameworks where stateful components own `create()` plus `*frontend()`, functional components are iterators with `next()`, and application composition can be expressed as frontend generators.
 ---
 
-# Generator Frontend Programs
+# Generator Frontend Components
 
 ## Objetivo
 
-Criar frontends JavaScript sem framework onde `function*` / `*program` e a forma principal de composicao da aplicacao e de fluxos vivos, e componentes puramente funcionais sao iterators com `next()`.
+Criar frontends JavaScript sem framework usando `*frontend` como o generator de componente stateful e de composicao da aplicacao.
 
 A regra central:
 
-- o app inteiro e um programa generator
-- componentes com estado, boot steps ou sequencia usam `create()` + `*program()`
-- componentes puramente funcionais sao iterators simples com `next(message)`
-- cada `yield` produz uma peca-step concreta do app ou do componente
-- `.next(input)` injeta evento, estado ou resultado da etapa anterior
-
-O runtime nao e o paradigma. O runtime apenas dirige os programas vivos.
+- componentes stateful usam `create()` + `*frontend()`
+- a propria `create()` do componente consome `mount` e `events`
+- componentes puramente funcionais sao iterators com `next()`
+- composicao de app pode ser expressa como um `AppFrontend` com `*frontend()`
+- cada `yield` em `*frontend` produz uma etapa concreta de montagem, evento ou HTML
 
 ## Modelo Mental
 
-Um frontend e uma arvore de programas e iterators vivos.
+Um componente stateful e um frontend vivo.
 
 ```js
-const input = yield step;
+const input = yield html;
 ```
 
 Significa:
 
-1. `yield step` entrega uma peca do programa.
-2. O generator pausa.
-3. O driver executa ou registra essa peca.
-4. `.next(input)` devolve resultado, evento ou estado para dentro do programa.
-5. O proximo `yield` produz a proxima peca.
+1. `yield html` envia HTML para fora.
+2. O frontend pausa.
+3. `.next(input)` injeta estado ou evento de volta.
+4. O componente atualiza estado interno.
+5. O proximo `yield` produz o proximo HTML.
 
-## Programas de Aplicacao
+## Stateful Components
 
-O app tambem deve ser escrito como `*program`, nao como um `bootApp` imperativo central.
-
-```js
-const TopbarProgram = {
-  *program(id) {
-    yield {
-      type: "html",
-      id,
-      value: `<nav id="${id}"></nav>`,
-    };
-  },
-};
-
-const HomeComponent = ({ id }) => ({
-  next() {
-    return {
-      done: false,
-      value: `<main id="${id}"></main>`,
-    };
-  },
-});
-
-const AppProgram = {
-  *program({ rootSelector = "#app" } = {}) {
-    const root = yield { type: "resolveRoot", rootSelector };
-    const interator = yield { type: "createInterator" };
-
-    const topbar = yield { type: "createComponent", id: "topbar", component: TopbarProgram };
-    const home = yield { type: "createComponent", id: "home", component: HomeComponent };
-
-    yield { type: "render", root, interator, children: [topbar, home] };
-    yield { type: "wireEvents", root, interator, children: [topbar, home] };
-  },
-};
-```
-
-O app program decide a ordem de composicao. O driver so interpreta os steps.
-
-## Programas de Componentes
-
-Use `create()` + `*program` para componentes com estado interno, boot steps ou sequencia propria.
-
-A funcao `create()` pertence ao componente. Ela cria o iterator vivo, registra por `id`, consome os primeiros yields (`mount` e `events`) e retorna a funcao de montagem. O driver externo nao deve conhecer nem consumir esse protocolo interno.
+Use este formato quando o componente tem estado, eventos proprios, boot steps ou sequencia interna.
 
 ```js
-const CounterProgram = {
+const CounterComponent = {
+  frontends: {},
   events: {},
 
-  *program(id) {
+  *frontend(id) {
     let state = { counting: 0 };
 
     yield function mount(target = document.body, position = "beforeend") {
-      const program = window.counterPrograms[id];
-      target.insertAdjacentHTML(position, program.next().value);
+      const frontend = CounterComponent.frontends[id];
+      target.insertAdjacentHTML(position, frontend.next().value);
     };
 
     yield {
       increment() {
-        const program = window.counterPrograms[id];
+        const frontend = CounterComponent.frontends[id];
         const el = document.querySelector(`#${CSS.escape(id)}`);
-        if (!program || !el) return;
-        el.outerHTML = program.next({ counting: state.counting + 1 }).value;
+        if (!frontend || !el) return;
+        el.outerHTML = frontend.next({ counting: state.counting + 1 }).value;
       },
     };
 
     while (true) {
       const input = yield `<section id="${id}">${state.counting}</section>`;
-
       state = Object.assign(state, input || {});
     }
   },
 
   create(id) {
-    const program = this.program(id);
+    const frontend = this.frontend(id);
 
-    window.counterPrograms = window.counterPrograms || {};
-    window.counterPrograms[id] = program;
+    this.frontends[id] = frontend;
 
-    const mount = program.next().value;
-    this.events[id] = program.next().value;
+    const mount = frontend.next().value;
+    this.events[id] = frontend.next().value;
 
     return mount;
-  }
+  },
 };
 ```
 
-## Componentes Puramente Funcionais
+`create()` pertence ao componente. Ela cria o frontend vivo, registra por `id`, consome os primeiros yields (`mount` e `events`) e retorna a funcao de montagem. Codigo externo nao deve consumir esse protocolo interno.
 
-Quando o componente nao precisa pausar entre etapas, ele pode ser um iterator funcional com `next()`.
+## Functional Components
+
+Quando o componente nao precisa de estado nem boot steps, use um iterator simples com `next()`.
 
 ```js
 const LabelComponent = ({ id, props = {} }) => ({
@@ -140,87 +97,50 @@ const LabelComponent = ({ id, props = {} }) => ({
 });
 ```
 
-Esse formato e valido para componentes sem estado proprio e sem protocolo de montagem. O driver pode trata-lo do mesmo modo que qualquer outro componente vivo: chama `.next(input)` e consome `.value`.
+## App Frontend
 
-## Componentes
-
-Componentes sao programas locais de UI.
-
-Use componentes para:
-
-- estado local
-- renderizacao local
-- eventos que alteram somente a propria view
-- producao de HTML completo do elemento raiz
-
-Nao use componentes para:
-
-- coordenar o app inteiro
-- guardar rota global, sessao ou cache global
-- registrar listeners globais soltos
-
-## Interators
-
-Interators continuam existindo, mas como peca-step produzida pelo app program.
-
-Eles coordenam:
-
-- event system
-- roteamento
-- sessao
-- persistencia
-- estados atomicos globais
-- sincronizacao entre component programs
+A composicao do app tambem pode ser um frontend generator.
 
 ```js
-const createInterator = ({ persist }) => {
-  const atoms = {
-    route: "home",
-    session: null,
-    selectedId: null,
-  };
+const AppFrontend = {
+  *frontend({ rootSelector = "#app" } = {}) {
+    const root = yield { type: "resolveRoot", rootSelector };
+    const interator = yield { type: "createInterator" };
+    const topbar = yield { type: "createComponent", id: "topbar", component: TopbarComponent };
+    const home = yield { type: "createComponent", id: "home", component: HomeComponent };
 
-  return {
-    dispatch(message) {
-      if (message.type === "navigate") atoms.route = message.route;
-      if (message.type === "select") atoms.selectedId = message.value;
-      if (message.type === "login") atoms.session = message.session;
-      persist?.(atoms);
-      return atoms;
-    },
-
-    getAtoms() {
-      return atoms;
-    },
-  };
+    yield { type: "render", root, interator, children: { topbar, home } };
+    yield { type: "wireEvents", root, interator, children: { topbar, home } };
+  },
 };
 ```
 
+O `AppFrontend` decide a ordem de composicao. O driver apenas interpreta os steps.
+
 ## Driver
 
-O driver executa steps. Ele nao deve esconder a arquitetura.
+O driver executa steps do app. Ele pode:
 
-Responsabilidades do driver:
-
-- criar ou receber iterators vivos via API publica dos componentes
 - resolver root DOM
-- montar HTML
-- aplicar `outerHTML`
+- criar interator
+- chamar `component.create(id)` para stateful components
+- chamar `component({ id })` para functional components
+- chamar `component.frontend(id)` para frontend generators simples sem `create`
 - normalizar eventos em mensagens
-- chamar `.next(input)` nos programas corretos
-- chamar `component.create(id)` quando o componente stateful expor essa API
+- chamar `.next(message)` nos iterators vivos
+- aplicar HTML produzido
+
+O driver nao deve abrir o protocolo interno de `mount` e `events` de um componente stateful. Isso e responsabilidade de `component.create(id)`.
 
 ## Regras
 
 ### Faca
 
-- Modele componentes com estado/sequencia como `create()` + `*program()`.
-- Modele componentes puramente funcionais como iterators com `next()`.
-- Trate cada `yield` como peca algoritmica concreta.
-- Use driver pequeno para executar os steps.
-- Deixe `create()` do componente consumir `mount` e `events` dos stateful components.
-- Guarde iterators vivos por `id`.
-- Use `program.next(input).value` para avancar programas.
+- Use `create()` + `*frontend()` para componentes stateful.
+- Use iterator com `next()` para componentes funcionais.
+- Deixe `create()` consumir `mount` e `events`.
+- Guarde frontends vivos por `id`.
+- Use `frontend.next(input).value` para avancar componentes stateful.
 - Use `outerHTML` quando o HTML gerado contem o elemento raiz.
 - Use `insertAdjacentHTML` para montagem inicial.
 - Use `JSON.stringify(id)` para `id` dentro de JavaScript inline.
@@ -229,20 +149,19 @@ Responsabilidades do driver:
 
 ### Nao faca
 
-- Nao coloque a composicao principal em `bootApp` imperativo quando ela pode ser um app program.
-- Nao trate generator como detalhe sintatico.
-- Nao salve a generator function como programa vivo. Salve o iterator retornado.
+- Nao deixe o driver externo consumir `mount` e `events` de stateful components.
+- Nao salve a generator function como frontend vivo. Salve o iterator retornado por `frontend(...)`.
 - Nao chame `.next()` na generator function bruta.
 - Nao use `append(string)` esperando HTML parseado.
 - Nao transforme componente local em coordenador global.
 
 ## Glossario
 
-- `AppProgram`: generator que compoe o app inteiro.
-- `ComponentProgram`: componente stateful com `create()` e `*program()`.
-- `FunctionalComponent`: iterator simples com `next()` para componentes puros.
-- `program`: iterator vivo retornado por `*program(...)`.
-- `yield step`: saida de uma etapa concreta.
-- `.next(input)`: entrada de dados, eventos ou resultado no programa.
-- `driver`: executor pequeno que interpreta steps.
+- `*frontend`: generator de componente ou composicao.
+- `frontend`: iterator vivo retornado por `frontend(...)`.
+- `create(id)`: fabrica publica de componente stateful.
+- `mount`: primeiro yield interno do componente stateful.
+- `events`: segundo yield interno do componente stateful.
+- `FunctionalComponent`: componente puro que retorna iterator com `next()`.
+- `AppFrontend`: generator de composicao do app.
 - `interator`: coordenador de eventos, atomos globais e efeitos compartilhados.
