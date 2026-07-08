@@ -2,10 +2,19 @@
 
 ```js
 const HomeComponent = ({ id }) => ({
+  id,
+  element: null,
+
   next() {
+    const template = document.createElement("template");
+
+    template.innerHTML = `<main id="${id}"></main>`;
+    this.element = template.content.children[0];
+    this.element.component = this;
+
     return {
       done: false,
-      value: `<main id="${id}"></main>`,
+      value: this.element,
     };
   },
 });

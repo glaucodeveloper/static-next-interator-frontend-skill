@@ -120,23 +120,18 @@ const User = define("User", UserType, UserMethods);
 
 ```js
 const Component = define("Component", {
-  name: Type.string,
-  element: Type.object,
-  props: Type.object,
-  render: Type.fn
+  id: Type.string,
+  state: Type.object,
+  element: Type.any,
+  next: Type.fn
 }, {
-  mount(target) {
-    target.appendChild(this.element);
+  renderInto(target) {
+    target.append(this.next().value);
     return this;
   },
 
-  update(props) {
-    this.props = {
-      ...this.props,
-      ...props
-    };
-
-    this.render();
+  update(state) {
+    this.next(state);
     return this;
   }
 });

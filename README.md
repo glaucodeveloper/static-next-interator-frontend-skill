@@ -2,9 +2,11 @@
 
 Skill e exemplos para frontends JavaScript sem framework onde:
 
-- componentes stateful usam `create()` + `*frontend()`
-- componentes funcionais usam iterators com `next()`
-- a composicao do app pode ser um `AppFrontend`
+- componentes sao objetos vivos com `id`, `state`, `element` e `next(newState)`
+- `next()` retorna `{ value: Element, done: false }`
+- updates substituem o proprio elemento conectado com `replaceWith`
+- o elemento raiz aponta de volta para o componente em `element.component`
+- a composicao do app pode continuar sendo um `AppFrontend`
 
 ## Conteudo
 

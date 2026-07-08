@@ -1,65 +1,122 @@
 # Component Examples
 
-Pure functional component as iterator:
+Pure functional component as a DOM-returning iterator:
 
 ```js
 const LabelComponent = ({ id, props = {} }) => ({
+  id,
+  element: null,
+
   next(message = {}) {
     const text = message.text ?? props.text ?? "";
+    const template = document.createElement("template");
+
+    template.innerHTML = `<span id="${id}">${text}</span>`;
+    this.element = template.content.children[0];
+    this.element.component = this;
 
     return {
       done: false,
-      value: `<span id="${id}">${text}</span>`,
+      value: this.element,
     };
   },
 });
 ```
 
-Stateful component as `create()` + `*frontend()`:
+Stateful component as a live object with `next(newState)`:
 
 ```js
-const CounterComponent = {
-  frontends: {},
-  events: {},
+function CounterComponent(id) {
+  const title = "Contador";
 
-  *frontend(id) {
-    let state = { counting: 0 };
+  const actions = [
+    { text: "+1", call: "addCountingState(1)" },
+    { text: "+10", call: "addCountingState(10)" },
+    { text: "set 100", call: "setCountingState(100)" },
+    { text: "mudar label", call: "changeLabel('Estado alterado')" },
+    { text: "reset", call: "resetState()" },
+  ];
 
-    yield function mount(target = document.body, position = "beforeend") {
-      const frontend = CounterComponent.frontends[id];
-      target.insertAdjacentHTML(position, frontend.next().value);
-    };
+  const actionButtons = () =>
+    actions
+      .map(
+        (action) => /*html*/ `
+          <button onclick="document.getElementById('${id}').component.${action.call}">
+            ${action.text}
+          </button>
+        `
+      )
+      .join("");
 
-    yield {
-      increment() {
-        const frontend = CounterComponent.frontends[id];
-        const el = document.querySelector(`#${CSS.escape(id)}`);
-        if (!frontend || !el) return;
-        el.outerHTML = frontend.next({ counting: state.counting + 1 }).value;
-      },
-    };
+  return {
+    id,
+    state: {
+      counting: 0,
+      label: title,
+    },
+    element: null,
 
-    while (true) {
-      const input = yield `
-        <section id="${id}">
-          <span>${state.counting}</span>
-          <button onclick="CounterComponent.events[${JSON.stringify(id)}].increment()">click</button>
-        </section>
-      `;
+    next(newState = {}) {
+      Object.assign(this.state, newState);
 
-      state = Object.assign(state, input || {});
-    }
-  },
+      const template = document.createElement("template");
 
-  create(id) {
-    const frontend = this.frontend(id);
+      template.innerHTML = /*html*/ `
+        <div id="${this.id}">
+          <h2>${this.state.label}</h2>
+          <span>${this.state.counting}</span>
+          ${actionButtons()}
+        </div>
+      `.trim();
 
-    this.frontends[id] = frontend;
+      this.element = ((element) =>
+        this.element?.isConnected
+          ? (
+              this.element.replaceWith(
+                (element.component = this, element)
+              ),
+              element
+            )
+          : (
+              element.component = this,
+              element
+            )
+      )(template.content.children[0]);
 
-    const mount = frontend.next().value;
-    this.events[id] = frontend.next().value;
+      return {
+        value: this.element,
+        done: false,
+      };
+    },
 
-    return mount;
-  },
-};
+    addCountingState(number) {
+      return this.next({
+        counting: this.state.counting + number,
+      });
+    },
+
+    setCountingState(number) {
+      return this.next({
+        counting: number,
+      });
+    },
+
+    changeLabel(label) {
+      return this.next({
+        label,
+      });
+    },
+
+    resetState() {
+      return this.next({
+        counting: 0,
+        label: title,
+      });
+    },
+  };
+}
+
+document.body.append(
+  CounterComponent("counter-1").next().value
+);
 ```

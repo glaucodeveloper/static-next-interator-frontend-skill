@@ -1,15 +1,35 @@
-const TopbarComponent = {
-  *frontend(id) {
-    yield { type: "mount", id };
-    yield { type: "html", id, value: `<nav id="${id}"></nav>` };
-  },
-};
+const TopbarComponent = ({ id }) => ({
+  id,
+  element: null,
 
-const HomeComponent = ({ id }) => ({
   next() {
+    const template = document.createElement("template");
+
+    template.innerHTML = `<nav id="${id}"></nav>`;
+    this.element = template.content.children[0];
+    this.element.component = this;
+
     return {
       done: false,
-      value: `<main id="${id}"></main>`,
+      value: this.element,
+    };
+  },
+});
+
+const HomeComponent = ({ id }) => ({
+  id,
+  element: null,
+
+  next() {
+    const template = document.createElement("template");
+
+    template.innerHTML = `<main id="${id}"></main>`;
+    this.element = template.content.children[0];
+    this.element.component = this;
+
+    return {
+      done: false,
+      value: this.element,
     };
   },
 });
@@ -30,6 +50,6 @@ const app = AppFrontend.frontend({ rootSelector: "#app" });
 console.log(app.next().value);
 console.log(app.next({ nodeType: 1 }).value);
 console.log(app.next({ route: "home" }).value);
-console.log(app.next(TopbarComponent.frontend("topbar")).value);
+console.log(app.next(TopbarComponent({ id: "topbar" })).value);
 console.log(app.next(HomeComponent({ id: "home" })).value);
 console.log(app.next().value);

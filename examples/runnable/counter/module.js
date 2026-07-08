@@ -1,86 +1,97 @@
-function escapeHtmlAttr(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
+function CounterComponent(id) {
+  const title = "Contador";
+
+  const actions = [
+    { text: "+1", call: "addCountingState(1)" },
+    { text: "+10", call: "addCountingState(10)" },
+    { text: "set 100", call: "setCountingState(100)" },
+    { text: "mudar label", call: "changeLabel('Estado alterado')" },
+    { text: "reset", call: "resetState()" },
+  ];
+
+  const actionButtons = () =>
+    actions
+      .map(
+        (action) => /*html*/ `
+          <button onclick="document.getElementById('${id}').component.${action.call}">
+            ${action.text}
+          </button>
+        `
+      )
+      .join("");
+
+  return {
+    id,
+
+    state: {
+      counting: 0,
+      label: title,
+    },
+
+    element: null,
+
+    next(newState = {}) {
+      Object.assign(this.state, newState);
+
+      const template = document.createElement("template");
+
+      template.innerHTML = /*html*/ `
+        <div id="${this.id}">
+          <h2>${this.state.label}</h2>
+
+          <span>${this.state.counting}</span>
+
+          ${actionButtons()}
+        </div>
+      `.trim();
+
+      this.element = ((element) =>
+        this.element?.isConnected
+          ? (
+              this.element.replaceWith(
+                (element.component = this, element)
+              ),
+              element
+            )
+          : (
+              element.component = this,
+              element
+            )
+      )(template.content.children[0]);
+
+      return {
+        value: this.element,
+        done: false,
+      };
+    },
+
+    addCountingState(number) {
+      return this.next({
+        counting: this.state.counting + number,
+      });
+    },
+
+    setCountingState(number) {
+      return this.next({
+        counting: number,
+      });
+    },
+
+    changeLabel(label) {
+      return this.next({
+        label,
+      });
+    },
+
+    resetState() {
+      return this.next({
+        counting: 0,
+        label: title,
+      });
+    },
+  };
 }
 
-const CounterComponent = {
-  frontends: {},
-  events: {},
-
-  *frontend(id) {
-    let state = {
-      counting: 0,
-    };
-
-    const idRef = JSON.stringify(id);
-
-    yield function mount(target = document.body, position = "beforeend") {
-      const frontend = CounterComponent.frontends[id];
-      target.insertAdjacentHTML(position, frontend.next().value);
-    };
-
-    yield {
-      addCountingState(number) {
-        const frontend = CounterComponent.frontends[id];
-        const el = document.querySelector(`#${CSS.escape(id)}`);
-
-        if (!frontend || !el) return;
-
-        el.outerHTML = frontend.next({
-          counting: number,
-        }).value;
-      },
-
-      resetCountingState() {
-        const frontend = CounterComponent.frontends[id];
-        const el = document.querySelector(`#${CSS.escape(id)}`);
-
-        if (!frontend || !el) return;
-
-        el.outerHTML = frontend.next({
-          counting: 0,
-        }).value;
-      },
-    };
-
-    while (true) {
-      const addHandler = escapeHtmlAttr(
-        `CounterComponent.events[${idRef}].addCountingState(${state.counting + 1})`
-      );
-
-      const resetHandler = escapeHtmlAttr(
-        `CounterComponent.events[${idRef}].resetCountingState()`
-      );
-
-      const newState = yield `
-        <div id="${escapeHtmlAttr(id)}">
-          <span>${state.counting}</span>
-          <button onclick="${addHandler}">click!</button>
-          <button onclick="${resetHandler}">reset</button>
-        </div>
-      `;
-
-      state = Object.assign(state, newState || {});
-    }
-  },
-
-  create(id) {
-    const frontend = this.frontend(id);
-
-    this.frontends[id] = frontend;
-
-    const mount = frontend.next().value;
-    this.events[id] = frontend.next().value;
-
-    return mount;
-  },
-};
-
-window.CounterComponent = CounterComponent;
-
-const mountCounter = CounterComponent.create("counter-1");
-mountCounter(document.body);
+document.body.append(
+  CounterComponent("counter-1").next().value
+);

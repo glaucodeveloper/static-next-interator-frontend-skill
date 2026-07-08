@@ -1,12 +1,12 @@
 # Frontend Generation
 
-Use `function*` as `*frontend` for app composition and stateful component rendering.
+Use `function*` as `*frontend` for app composition, not as the default stateful component model.
 
 Common app frontend steps:
 
 - resolve root DOM
 - create interator
-- create components
+- create component objects
 - render active components
 - wire event delegation
 
@@ -24,4 +24,4 @@ const AppFrontend = {
 };
 ```
 
-The driver can be small because the app frontend carries the composition order.
+The driver can be small because the app frontend carries the composition order. Components still own their own render/update cycle through `next(newState)`.

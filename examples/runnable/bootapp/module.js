@@ -1,34 +1,62 @@
-const TopbarComponent = {
-  *frontend(id) {
-    while (true) {
-      yield {
-        type: "html",
-        id,
-        value: `
-          <nav id="${id}">
-            <button data-cid="${id}" data-message="navigate" data-route="home">home</button>
-            <button data-cid="${id}" data-message="navigate" data-route="favorites">favorites</button>
-          </nav>
-        `,
-      };
-    }
-  },
-};
+const TopbarComponent = ({ id }) => ({
+  id,
+  element: null,
 
-const HomeComponent = ({ id }) => ({
   next() {
+    const template = document.createElement("template");
+
+    template.innerHTML = /*html*/ `
+      <nav id="${id}">
+        <button data-cid="${id}" data-message="navigate" data-route="home">home</button>
+        <button data-cid="${id}" data-message="navigate" data-route="favorites">favorites</button>
+      </nav>
+    `.trim();
+
+    this.element = ((element) =>
+      this.element?.isConnected
+        ? (this.element.replaceWith((element.component = this, element)), element)
+        : (element.component = this, element)
+    )(template.content.children[0]);
+
     return {
       done: false,
-      value: `<section id="${id}"><h1>home</h1></section>`,
+      value: this.element,
+    };
+  },
+});
+
+const HomeComponent = ({ id }) => ({
+  id,
+  element: null,
+
+  next() {
+    const template = document.createElement("template");
+
+    template.innerHTML = `<section id="${id}"><h1>home</h1></section>`;
+    this.element = template.content.children[0];
+    this.element.component = this;
+
+    return {
+      done: false,
+      value: this.element,
     };
   },
 });
 
 const FavoritesComponent = ({ id }) => ({
+  id,
+  element: null,
+
   next() {
+    const template = document.createElement("template");
+
+    template.innerHTML = `<section id="${id}"><h1>favorites</h1></section>`;
+    this.element = template.content.children[0];
+    this.element.component = this;
+
     return {
       done: false,
-      value: `<section id="${id}"><h1>favorites</h1></section>`,
+      value: this.element,
     };
   },
 });
@@ -73,18 +101,16 @@ const AppFrontend = {
   },
 };
 
-function readHtml(component) {
-  const result = component.next().value;
-  return typeof result === "string" ? result : result.value;
-}
-
 function render(root, interator, children) {
   const route = interator.getAtoms().route;
+  const fragment = document.createDocumentFragment();
+  const main = document.createElement("main");
 
-  root.innerHTML = `
-    ${readHtml(children.topbar)}
-    <main>${readHtml(children[route])}</main>
-  `;
+  fragment.append(children.topbar.next().value);
+  main.append(children[route].next().value);
+  fragment.append(main);
+
+  root.replaceChildren(fragment);
 }
 
 function executeStep(step, context) {
@@ -92,8 +118,6 @@ function executeStep(step, context) {
   if (step.type === "createInterator") return createInterator();
 
   if (step.type === "createComponent") {
-    if (step.component.create) return step.component.create(step.id);
-    if (step.component.frontend) return step.component.frontend(step.id);
     return step.component({ id: step.id });
   }
 

@@ -1,9 +1,7 @@
 # Philosophy
 
-Stateful components own their frontend lifecycle.
+Components own their state, current DOM element, and update cycle.
 
-The component's `create()` function creates the live frontend iterator, consumes `mount` and `events`, and returns the mount function. External drivers should treat the component through that public API.
+The component's `next(newState)` method is the public lifecycle operation: it merges state, renders a fresh element from a template, attaches `element.component = this`, replaces the connected previous element when needed, and returns `{ value: element, done: false }`.
 
-Functional components stay simple: they return an iterator with `next()`.
-
-App composition can be an `AppFrontend`, but component internals remain component-owned.
+Application composition can still be an `AppFrontend`, but component internals remain component-owned.

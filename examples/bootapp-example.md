@@ -14,4 +14,4 @@ function runApp(appFrontend) {
 }
 ```
 
-The app composition belongs in `AppFrontend`.
+The app composition belongs in `AppFrontend`. Component rendering belongs in each component's `next(newState)` method.
