@@ -134,6 +134,18 @@ O driver nao deve abrir o protocolo interno de `mount` e `events` de um componen
 
 ## Regras
 
+## Runtime Type Contracts
+
+Quando o frontend precisar de "type definitions" em JS puro, use contratos de runtime em vez de `.d.ts`.
+
+- Defina schemas como objetos de validadores.
+- Crie modelos com prototype + proxy.
+- Valide dados no construtor e em toda atribuição.
+- Rejeite propriedades fora do schema.
+- Use métodos compartilhados no prototype para comportamento de domínio.
+
+Leia `references/runtime-types.md` quando o projeto precisar de modelos, componentes, mensagens, eventos, rotas ou entidades com contrato verificável em runtime.
+
 ### Faca
 
 - Use `create()` + `*frontend()` para componentes stateful.
