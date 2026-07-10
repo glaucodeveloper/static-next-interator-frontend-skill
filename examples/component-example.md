@@ -29,25 +29,6 @@ Stateful component as a live object with `next(newState)`:
 function CounterComponent(id) {
   const title = "Contador";
 
-  const actions = [
-    { text: "+1", call: "addCountingState(1)" },
-    { text: "+10", call: "addCountingState(10)" },
-    { text: "set 100", call: "setCountingState(100)" },
-    { text: "mudar label", call: "changeLabel('Estado alterado')" },
-    { text: "reset", call: "resetState()" },
-  ];
-
-  const actionButtons = () =>
-    actions
-      .map(
-        (action) => /*html*/ `
-          <button onclick="document.getElementById('${id}').component.${action.call}">
-            ${action.text}
-          </button>
-        `
-      )
-      .join("");
-
   return {
     id,
     state: {
@@ -65,7 +46,20 @@ function CounterComponent(id) {
         <div id="${this.id}">
           <h2>${this.state.label}</h2>
           <span>${this.state.counting}</span>
-          ${actionButtons()}
+          ${[
+            { text: "+1", call: "addCountingState(1)" },
+            { text: "+10", call: "addCountingState(10)" },
+            { text: "set 100", call: "setCountingState(100)" },
+            { text: "mudar label", call: "changeLabel('Estado alterado')" },
+            { text: "reset", call: "resetState()" },
+          ].map(
+            (action) => /*html*/ `
+              <button onclick="document.getElementById('${id}').component.${action.call}">
+                ${action.text}
+              </button>
+            `
+          )
+          .join("")}
         </div>
       `.trim();
 
