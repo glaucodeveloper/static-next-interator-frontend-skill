@@ -1,3 +1,6 @@
+## TODO:
+- Add this. eventhandler conection to html template via bind call this
+
 # Static Next Interator Frontend
 
 Skill e exemplos para frontends JavaScript sem framework onde:
