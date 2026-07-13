@@ -130,21 +130,21 @@ Use uma funcao geradora `frontend()` apenas para ordenar montagem e wiring:
 
 ```js
 function* frontend({ rootSelector = "#app" } = {}) {
-    const root = yield { type: "resolveRoot", rootSelector };
-    const interator = yield { type: "createInterator" };
-    const topbar = yield {
-      type: "createComponent",
-      id: "topbar",
-      component: TopbarComponent,
-    };
-    const home = yield {
-      type: "createComponent",
-      id: "home",
-      component: HomeComponent,
-    };
+  const root = yield { type: "resolveRoot", rootSelector };
+  const interator = yield { type: "createInterator" };
+  const topbar = yield {
+    type: "createComponent",
+    id: "topbar",
+    component: TopbarComponent,
+  };
+  const home = yield {
+    type: "createComponent",
+    id: "home",
+    component: HomeComponent,
+  };
 
-    yield { type: "mount", root, interator, children: { topbar, home } };
-    yield { type: "wireEvents", root, interator, children: { topbar, home } };
+  yield { type: "mount", root, interator, children: { topbar, home } };
+  yield { type: "wireEvents", root, interator, children: { topbar, home } };
 }
 ```
 

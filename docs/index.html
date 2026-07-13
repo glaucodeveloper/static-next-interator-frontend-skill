@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Uma skill para frontends JavaScript sem framework, com componentes nextable, DOM seguro e contratos de runtime.">
+  <meta name="theme-color" content="#0f172a">
+  <title>Static Next Interator Frontend</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #172033;
+      --surface-strong: #1e293b;
+      --text: #f8fafc;
+      --muted: #b6c2d3;
+      --border: #475569;
+      --accent: #22c55e;
+      --accent-strong: #86efac;
+      --focus: #facc15;
+      --code: #d9e6f7;
+      --shadow: 0 18px 45px rgb(0 0 0 / 22%);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      background:
+        radial-gradient(circle at 78% 0%, rgb(34 197 94 / 12%), transparent 26rem),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    a { color: inherit; }
+
+    a:focus-visible, summary:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 4px;
+    }
+
+    .skip-link {
+      position: fixed;
+      z-index: 5;
+      top: 1rem;
+      left: 1rem;
+      padding: .7rem 1rem;
+      background: var(--focus);
+      color: #111827;
+      font-weight: 700;
+      transform: translateY(-160%);
+    }
+
+    .skip-link:focus { transform: translateY(0); }
+
+    .shell { width: min(1120px, calc(100% - 2.5rem)); margin-inline: auto; }
+
+    .site-header {
+      position: sticky;
+      z-index: 2;
+      top: 0;
+      border-bottom: 1px solid rgb(71 85 105 / 75%);
+      background: rgb(15 23 42 / 93%);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav { display: flex; align-items: center; justify-content: space-between; min-height: 4.5rem; gap: 1rem; }
+
+    .brand { display: inline-flex; align-items: center; gap: .75rem; text-decoration: none; font-weight: 750; letter-spacing: -.02em; }
+
+    .brand-mark {
+      display: grid;
+      width: 1.75rem;
+      height: 1.75rem;
+      place-items: center;
+      border: 1px solid var(--accent);
+      border-radius: .42rem;
+      color: var(--accent-strong);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: .85rem;
+    }
+
+    nav ul { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .2rem .9rem; padding: 0; margin: 0; list-style: none; }
+    nav a { color: var(--muted); font-size: .9rem; text-decoration: none; }
+    nav a:hover { color: var(--text); }
+
+    .hero { padding: clamp(4rem, 12vw, 8.5rem) 0 4.5rem; }
+    .eyebrow { margin: 0 0 1rem; color: var(--accent-strong); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    h1, h2, h3 { line-height: 1.15; letter-spacing: -.035em; }
+    h1 { max-width: 14ch; margin: 0; font-size: clamp(2.7rem, 7vw, 5.7rem); }
+    h2 { margin: 0 0 1rem; font-size: clamp(1.7rem, 3.8vw, 2.65rem); }
+    h3 { margin: 0 0 .6rem; font-size: 1.16rem; }
+    .lede { max-width: 62ch; margin: 1.5rem 0 0; color: var(--muted); font-size: clamp(1.08rem, 2vw, 1.3rem); }
+    .actions { display: flex; flex-wrap: wrap; gap: .8rem; margin-top: 2rem; }
+
+    .button {
+      display: inline-flex;
+      min-height: 2.75rem;
+      align-items: center;
+      justify-content: center;
+      padding: .55rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: .45rem;
+      color: var(--text);
+      font-weight: 700;
+      text-decoration: none;
+      transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+    }
+
+    .button:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .button.primary { border-color: var(--accent); background: var(--accent); color: #06240f; }
+    .button.primary:hover { background: var(--accent-strong); }
+
+    .signal { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 4.5rem; overflow: hidden; border: 1px solid var(--border); border-radius: .65rem; background: var(--border); box-shadow: var(--shadow); }
+    .signal div { min-height: 7rem; padding: 1.2rem; background: var(--surface); }
+    .signal strong { display: block; color: var(--accent-strong); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1.6rem; }
+    .signal span { color: var(--muted); font-size: .9rem; }
+
+    section { padding: 5.2rem 0; border-top: 1px solid rgb(71 85 105 / 62%); }
+    .section-intro { max-width: 62ch; margin: 0 0 2rem; color: var(--muted); }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+    .card { min-height: 100%; padding: 1.4rem; border: 1px solid var(--border); border-radius: .65rem; background: linear-gradient(145deg, rgb(30 41 59 / 90%), rgb(23 32 51 / 90%)); }
+    .card p, .card li { color: var(--muted); }
+    .card p { margin: 0; }
+
+    .split { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: clamp(1.5rem, 5vw, 5rem); align-items: start; }
+    .checklist { display: grid; gap: .9rem; padding: 0; margin: 0; list-style: none; }
+    .checklist li { position: relative; padding-left: 1.7rem; color: var(--muted); }
+    .checklist li::before { position: absolute; left: 0; color: var(--accent); content: "✓"; font-weight: 800; }
+
+    pre { overflow-x: auto; margin: 0; padding: 1.25rem; border: 1px solid var(--border); border-radius: .65rem; background: #09111f; color: var(--code); box-shadow: var(--shadow); }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: .9em; }
+    .inline-code { color: var(--accent-strong); }
+
+    .doc-list { display: grid; gap: .7rem; padding: 0; margin: 0; list-style: none; }
+    .doc-list a { display: flex; justify-content: space-between; gap: 1rem; padding: .85rem 0; border-bottom: 1px solid rgb(71 85 105 / 62%); color: var(--text); text-decoration: none; }
+    .doc-list a:hover { color: var(--accent-strong); }
+    .doc-list span { color: var(--muted); }
+
+    details { border: 1px solid var(--border); border-radius: .55rem; background: var(--surface); }
+    details + details { margin-top: .75rem; }
+    summary { padding: 1rem 1.15rem; cursor: pointer; font-weight: 700; }
+    details p { padding: 0 1.15rem 1rem; margin: 0; color: var(--muted); }
+
+    .callout { padding: clamp(1.4rem, 4vw, 2.5rem); border: 1px solid var(--accent); border-radius: .7rem; background: linear-gradient(120deg, rgb(34 197 94 / 14%), rgb(30 41 59 / 80%)); }
+    .callout p { max-width: 62ch; margin: .6rem 0 0; color: var(--muted); }
+
+    footer { padding: 2rem 0 3rem; color: var(--muted); font-size: .9rem; }
+    footer p { margin: 0; }
+
+    @media (max-width: 720px) {
+      .shell { width: min(100% - 2rem, 1120px); }
+      .nav { align-items: flex-start; padding: .85rem 0; }
+      nav ul { justify-content: flex-start; }
+      .signal, .grid, .split { grid-template-columns: 1fr; }
+      .signal div { min-height: auto; }
+      section { padding: 3.6rem 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .button { transition: none; }
+      .button:hover { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#content">Ir para o conteudo principal</a>
+  <header class="site-header">
+    <div class="shell nav">
+      <a class="brand" href="#top" aria-label="Static Next Interator Frontend, inicio">
+        <span class="brand-mark" aria-hidden="true">&gt;_</span>
+        <span>Static Next</span>
+      </a>
+      <nav aria-label="Navegacao principal">
+        <ul>
+          <li><a href="#contrato">Contrato</a></li>
+          <li><a href="#documentacao">Documentacao</a></li>
+          <li><a href="#contribuir">Contribuir</a></li>
+          <li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">GitHub</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="content">
+    <div id="top" class="shell hero">
+      <p class="eyebrow">Vanilla JavaScript · DOM nativo · contrato explicito</p>
+      <h1>Seu DOM, com um contrato que continua legivel.</h1>
+      <p class="lede">Uma skill para construir interfaces sem framework em que cada componente controla seu proprio root, seus eventos locais e suas atualizacoes — sem transformar o navegador em detalhe de implementacao.</p>
+      <div class="actions">
+        <a class="button primary" href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">Ver no GitHub</a>
+        <a class="button" href="#documentacao">Explorar a documentacao</a>
+      </div>
+      <div class="signal" aria-label="Principios da skill">
+        <div><strong>next()</strong><span>atualiza somente o componente responsavel</span></div>
+        <div><strong>template</strong><span>materializa um unico root por renderizacao</span></div>
+        <div><strong>runtime</strong><span>valida dados sem exigir TypeScript</span></div>
+      </div>
+    </div>
+
+    <section id="contrato">
+      <div class="shell split">
+        <div>
+          <p class="eyebrow">O contrato central</p>
+          <h2>Pequeno o bastante para auditar. Forte o bastante para orientar.</h2>
+          <p class="section-intro">Um componente e um objeto vivo, nao uma string HTML nem um iterator ECMAScript completo. Ele expoe <code class="inline-code">id</code>, <code class="inline-code">element</code> e <code class="inline-code">next(input)</code>; estado local e opcional.</p>
+          <ul class="checklist">
+            <li>Cria um novo root por atualizacao, usando <code>&lt;template&gt;</code>.</li>
+            <li>Conecta handlers antes de publicar o novo elemento.</li>
+            <li>Preserva ownership: eventos locais ficam no componente; mensagens globais seguem ao Interator.</li>
+            <li>Retorna <code>{ value: Element, done: false }</code> em cada ciclo.</li>
+          </ul>
+        </div>
+        <pre aria-label="Exemplo de uso do componente"><code>const counter = CounterComponent({
+  id: "counter",
+  props: { counting: 0 },
+});
+
+document.querySelector("#app")
+  .append(counter.next().value);
+
+counter.next({ counting: 1 });</code></pre>
+      </div>
+    </section>
+
+    <section>
+      <div class="shell">
+        <p class="eyebrow">Por que existe</p>
+        <h2>Sem handlers inline. Sem estado escondido. Sem render global acidental.</h2>
+        <p class="section-intro">Frontends pequenos tendem a acumular interpolacao insegura, listeners que se perdem e mudancas diretas no documento. A skill oferece limites praticos para manter JavaScript puro compreensivel ao longo do tempo.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Componentes nextable</h3>
+            <p>Estado local, identidade de DOM e substituicao segura do root convivem no mesmo objeto.</p>
+          </article>
+          <article class="card">
+            <h3>Eventos com ownership</h3>
+            <p>Acoes locais religam seus listeners a cada root; rota, sessao e sincronizacao se tornam mensagens explicitas.</p>
+          </article>
+          <article class="card">
+            <h3>Tipos em runtime</h3>
+            <p>Validadores estritos formalizam patches, modelos e resultados de <code>next()</code> em JavaScript puro.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="documentacao">
+      <div class="shell split">
+        <div>
+          <p class="eyebrow">Mapa de leitura</p>
+          <h2>Da primeira renderizacao ao contrato completo.</h2>
+          <p class="section-intro">A documentacao separa o ciclo do componente, os eventos, a composicao do app e os contratos de runtime. Leia apenas a camada que resolve seu problema atual.</p>
+        </div>
+        <ul class="doc-list">
+          <li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill/blob/main/SKILL.md">Contrato e limites <span>SKILL.md →</span></a></li>
+          <li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill/blob/main/references/component-contract.md">Componentes stateful e stateless <span>referencia →</span></a></li>
+          <li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill/blob/main/references/events.md">Eventos locais e globais <span>referencia →</span></a></li>
+          <li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill/blob/main/references/program-generation.md">Funcao geradora frontend() <span>referencia →</span></a></li>
+          <li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill/tree/main/examples">Exemplos executaveis <span>examples/ →</span></a></li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <div class="shell">
+        <p class="eyebrow">Escolha consciente</p>
+        <h2>Uma alternativa a um framework completo, nao uma imitacao dele.</h2>
+        <details>
+          <summary>Quando faz sentido usar?</summary>
+          <p>Ferramentas internas, paginas interativas, prototipos duraveis e migracoes graduais de JavaScript legado que pedem DOM nativo e atualizacoes localizadas.</p>
+        </details>
+        <details>
+          <summary>O que a skill nao promete?</summary>
+          <p>Ela nao promete compatibilidade com o protocolo Iterator e nao esconde efeitos globais dentro de <code>next()</code>. Timers, subscriptions e listeners de <code>window</code> ou <code>document</code> exigem ownership e <code>dispose()</code> explicitos.</p>
+        </details>
+      </div>
+    </section>
+
+    <section id="contribuir">
+      <div class="shell callout">
+        <p class="eyebrow">Comunidade</p>
+        <h2>Traga casos reais. Fortaleca o contrato.</h2>
+        <p>Contribuicoes de exemplos, migracoes e validacoes sao bem-vindas quando preservam a ownership do componente e deixam o ciclo mais verificavel. Antes de enviar uma mudanca, execute <code>node scripts/validate.mjs</code>.</p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">Abrir o repositorio</a>
+          <a class="button" href="community-announcement.md">Usar o anuncio da comunidade</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell"><p>Static Next Interator Frontend · JavaScript sem framework, com limites explicitos.</p></div>
+  </footer>
+</body>
+</html>
