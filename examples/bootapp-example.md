@@ -1,17 +1,22 @@
 # Driver Example
 
-`bootApp` is not the paradigm. It is only a driver for `AppFrontend`.
+Use `runApp()` somente como driver de `AppFrontend`. Preserve estes limites:
 
 ```js
-function runApp(appFrontend) {
+function runApp(appFrontend, executeStep) {
   const app = appFrontend.frontend();
-  let step = app.next();
+  let cursor = app.next();
 
-  while (!step.done) {
-    const result = executeStep(step.value);
-    step = app.next(result);
+  while (!cursor.done) {
+    cursor = app.next(executeStep(cursor.value));
   }
 }
 ```
 
-The app composition belongs in `AppFrontend`. Component rendering belongs in each component's `next(newState)` method.
+- Monte cada componente uma vez no step `mount`.
+- Encaminhe eventos globais a `interator.dispatch(message)`.
+- Use `result.changed` para renderizar apenas a regiao afetada.
+- Nao chame `component.next(message)` antes de uma renderizacao global.
+- Nao execute `root.replaceChildren()` a cada acao local.
+
+Veja a implementacao completa em `examples/runnable/bootapp/module.js`.

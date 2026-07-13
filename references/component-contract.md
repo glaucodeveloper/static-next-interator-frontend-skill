@@ -1,127 +1,197 @@
 # Component Contract
 
-## Stateful Component
+## Sumario
+
+- [Commit unico](#commit-unico)
+- [Componente stateful](#componente-stateful)
+- [Componente stateless](#componente-stateless)
+- [Invariantes](#invariantes)
+- [Custo da substituicao](#custo-da-substituicao)
+
+## Commit unico
+
+Use um unico helper de commit em todos os tipos de componente. Mantenha a criacao do DOM e a decisao de estado dentro de `next()`; use o helper apenas para conectar e publicar o novo root.
 
 ```js
-function CounterComponent(id) {
-  const title = "Contador";
+function commitComponentElement(component, element) {
+  if (!(element instanceof Element)) {
+    throw new TypeError("next() deve produzir um Element");
+  }
 
-  const actions = [
-    { text: "+1", call: "addCountingState(1)" },
-    { text: "+10", call: "addCountingState(10)" },
-    { text: "set 100", call: "setCountingState(100)" },
-    { text: "mudar label", call: "changeLabel('Estado alterado')" },
-    { text: "reset", call: "resetState()" },
-  ];
+  element.component = component;
+  component.connect?.(element);
 
-  const actionButtons = () =>
-    actions
-      .map(
-        (action) => /*html*/ `
-          <button onclick="document.getElementById('${id}').component.${action.call}">
-            ${action.text}
-          </button>
-        `
-      )
-      .join("");
+  if (component.element?.isConnected) {
+    component.element.replaceWith(element);
+  }
+
+  component.element = element;
+
+  return {
+    value: element,
+    done: false,
+  };
+}
+```
+
+Chame `connect(element)` antes de substituir o root anterior. Assim, uma falha de binding nao remove a interface ainda funcional.
+
+## Componente stateful
+
+Use dados declarativos no template e conecte os handlers depois de materializar o DOM. Nao gere `onclick` nem codigo JavaScript em strings.
+
+```js
+function CounterComponent({ id, props = {} }) {
+  const initialState = {
+    counting: props.counting ?? 0,
+    label: props.label ?? "Contador",
+  };
 
   return {
     id,
-    state: {
-      counting: 0,
-      label: title,
-    },
+    state: { ...initialState },
     element: null,
 
-    next(newState = {}) {
-      Object.assign(this.state, newState);
+    connect(element) {
+      for (const control of element.querySelectorAll("[data-action]")) {
+        control.addEventListener("click", this.handleAction.bind(this));
+      }
+
+      return element;
+    },
+
+    handleAction(event) {
+      const control = event.currentTarget;
+
+      switch (control.dataset.action) {
+        case "add":
+          return this.addCountingState(Number(control.dataset.amount));
+        case "set":
+          return this.setCountingState(Number(control.dataset.value));
+        case "label":
+          return this.changeLabel(control.dataset.label);
+        case "reset":
+          return this.resetState();
+        default:
+          throw new TypeError("Acao local desconhecida");
+      }
+    },
+
+    next(statePatch = {}) {
+      if (
+        statePatch === null ||
+        typeof statePatch !== "object" ||
+        Array.isArray(statePatch)
+      ) {
+        throw new TypeError("CounterComponent recebeu um statePatch invalido");
+      }
+
+      const allowedKeys = new Set(["counting", "label"]);
+
+      for (const key of Object.keys(statePatch)) {
+        if (!allowedKeys.has(key)) {
+          throw new TypeError(`CounterComponent.state.${key} nao existe`);
+        }
+      }
+
+      const nextState = {
+        ...this.state,
+        ...statePatch,
+      };
+
+      if (!Number.isFinite(nextState.counting)) {
+        throw new TypeError("CounterComponent.state.counting deve ser finito");
+      }
+
+      if (typeof nextState.label !== "string") {
+        throw new TypeError("CounterComponent.state.label deve ser string");
+      }
+
+      Object.assign(this.state, statePatch);
 
       const template = document.createElement("template");
-
       template.innerHTML = /*html*/ `
-        <div id="${this.id}">
-          <h2>${this.state.label}</h2>
-          <span>${this.state.counting}</span>
-          ${actionButtons()}
-        </div>
+        <section>
+          <h2 data-slot="label"></h2>
+          <output data-slot="counting"></output>
+          <button type="button" data-action="add" data-amount="1">+1</button>
+          <button type="button" data-action="add" data-amount="10">+10</button>
+          <button type="button" data-action="set" data-value="100">set 100</button>
+          <button type="button" data-action="label" data-label="Estado alterado">
+            mudar label
+          </button>
+          <button type="button" data-action="reset">reset</button>
+        </section>
       `.trim();
 
-      this.element = ((element) =>
-        this.element?.isConnected
-          ? (
-              this.element.replaceWith(
-                (element.component = this, element)
-              ),
-              element
-            )
-          : (
-              element.component = this,
-              element
-            )
-      )(template.content.children[0]);
+      if (template.content.childElementCount !== 1) {
+        throw new TypeError("CounterComponent deve renderizar um unico root");
+      }
 
-      return {
-        value: this.element,
-        done: false,
-      };
+      const element = template.content.firstElementChild;
+      element.id = this.id;
+      element.querySelector("[data-slot='label']").textContent = this.state.label;
+      element.querySelector("[data-slot='counting']").textContent = this.state.counting;
+
+      return commitComponentElement(this, element);
     },
 
     addCountingState(number) {
-      return this.next({
-        counting: this.state.counting + number,
-      });
+      return this.next({ counting: this.state.counting + number });
     },
 
     setCountingState(number) {
-      return this.next({
-        counting: number,
-      });
+      return this.next({ counting: number });
     },
 
     changeLabel(label) {
-      return this.next({
-        label,
-      });
+      return this.next({ label });
     },
 
     resetState() {
-      return this.next({
-        counting: 0,
-        label: title,
-      });
+      return this.next(initialState);
+    },
+  };
+}
+
+const counter = CounterComponent({ id: "counter-1" });
+document.body.append(counter.next().value);
+```
+
+## Componente stateless
+
+Mantenha o mesmo commit mesmo sem estado local. Chame esse objeto de stateless ou read-only; ele nao e uma funcao pura porque preserva `element`.
+
+```js
+function LabelComponent({ id, props = {} }) {
+  return {
+    id,
+    element: null,
+
+    next(input = {}) {
+      const template = document.createElement("template");
+      template.innerHTML = "<span></span>";
+
+      const element = template.content.firstElementChild;
+      element.id = this.id;
+      element.textContent = input.text ?? props.text ?? "";
+
+      return commitComponentElement(this, element);
     },
   };
 }
 ```
 
-Rules:
+## Invariantes
 
-- A component instance is a live object, not a generator function.
-- `next(newState)` merges partial state into `this.state`.
-- `next()` returns the current DOM root in `{ value, done: false }`.
-- The root element must receive `element.component = this`.
-- If `this.element` is connected, update by replacing it with the freshly rendered root.
-- Action methods should call `this.next(...)` instead of mutating DOM directly.
+- Use `{ id, element, next }` como contrato base.
+- Adicione `state` apenas a componentes stateful.
+- Passe `statePatch` ou dados de renderizacao a `next()`; passe eventos a handlers.
+- Crie exatamente um root novo por `next()`.
+- Execute o mesmo helper de commit em componentes stateful e stateless.
+- Reconecte listeners locais a cada root novo.
+- Retorne sempre o root publicado em `{ value, done: false }`.
 
-## Functional Component
+## Custo da substituicao
 
-```js
-const LabelComponent = ({ id, props = {} }) => ({
-  id,
-  element: null,
-
-  next(message = {}) {
-    const text = message.text ?? props.text ?? "";
-    const template = document.createElement("template");
-
-    template.innerHTML = `<span id="${id}">${text}</span>`;
-    this.element = template.content.children[0];
-    this.element.component = this;
-
-    return {
-      done: false,
-      value: this.element,
-    };
-  },
-});
-```
+Considere que `replaceWith()` remove listeners do root antigo, referencias externas, foco, selecao e estado DOM nao controlado. Preserve foco ou selecao de forma explicita quando a experiencia exigir. Nao registre listeners de `window` ou `document`, timers ou subscriptions em `connect()`; se o componente possuir esses recursos, adicione `dispose()` e cancele-os antes do descarte definitivo.

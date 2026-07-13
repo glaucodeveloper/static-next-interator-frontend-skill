@@ -1,32 +1,32 @@
 # App Frontend Example
 
+Mantenha `children` como objeto e use um step `mount` distinto de `wireEvents`:
+
 ```js
-const HomeComponent = ({ id }) => ({
-  id,
-  element: null,
-
-  next() {
-    const template = document.createElement("template");
-
-    template.innerHTML = `<main id="${id}"></main>`;
-    this.element = template.content.children[0];
-    this.element.component = this;
-
-    return {
-      done: false,
-      value: this.element,
-    };
-  },
-});
-
 const AppFrontend = {
   *frontend({ rootSelector = "#app" } = {}) {
     const root = yield { type: "resolveRoot", rootSelector };
     const interator = yield { type: "createInterator" };
-    const home = yield { type: "createComponent", id: "home", component: HomeComponent };
+    const home = yield {
+      type: "createComponent",
+      id: "home",
+      component: HomeComponent,
+    };
 
-    yield { type: "render", root, interator, children: { home } };
+    yield { type: "mount", root, interator, children: { home } };
     yield { type: "wireEvents", root, interator, children: { home } };
   },
 };
 ```
+
+Faca o driver criar `home` com:
+
+```js
+HomeComponent({
+  id: "home",
+  props: {},
+  interator,
+});
+```
+
+Nao alterne entre `children: []` e `children: {}` em steps diferentes.

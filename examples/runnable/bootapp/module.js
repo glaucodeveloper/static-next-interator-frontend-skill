@@ -1,92 +1,129 @@
-const TopbarComponent = ({ id }) => ({
-  id,
-  element: null,
+function commitComponentElement(component, element) {
+  if (!(element instanceof Element)) {
+    throw new TypeError("next() deve produzir um Element");
+  }
 
-  next() {
-    const template = document.createElement("template");
+  element.component = component;
+  component.connect?.(element);
 
-    template.innerHTML = /*html*/ `
-      <nav id="${id}">
-        <button data-cid="${id}" data-message="navigate" data-route="home">home</button>
-        <button data-cid="${id}" data-message="navigate" data-route="favorites">favorites</button>
-      </nav>
-    `.trim();
+  if (component.element?.isConnected) {
+    component.element.replaceWith(element);
+  }
 
-    this.element = ((element) =>
-      this.element?.isConnected
-        ? (this.element.replaceWith((element.component = this, element)), element)
-        : (element.component = this, element)
-    )(template.content.children[0]);
+  component.element = element;
 
-    return {
-      done: false,
-      value: this.element,
-    };
-  },
-});
+  return {
+    value: element,
+    done: false,
+  };
+}
 
-const HomeComponent = ({ id }) => ({
-  id,
-  element: null,
+function TopbarComponent({ id }) {
+  return {
+    id,
+    element: null,
+    renders: 0,
 
-  next() {
-    const template = document.createElement("template");
+    next() {
+      this.renders += 1;
 
-    template.innerHTML = `<section id="${id}"><h1>home</h1></section>`;
-    this.element = template.content.children[0];
-    this.element.component = this;
+      const template = document.createElement("template");
+      template.innerHTML = /*html*/ `
+        <nav aria-label="Navegacao principal">
+          <button type="button" data-message="navigate" data-route="home">home</button>
+          <button type="button" data-message="navigate" data-route="favorites">
+            favorites
+          </button>
+        </nav>
+      `.trim();
 
-    return {
-      done: false,
-      value: this.element,
-    };
-  },
-});
+      const element = template.content.firstElementChild;
+      element.id = this.id;
 
-const FavoritesComponent = ({ id }) => ({
-  id,
-  element: null,
+      for (const control of element.querySelectorAll("[data-message]")) {
+        control.dataset.sourceId = this.id;
+      }
 
-  next() {
-    const template = document.createElement("template");
+      return commitComponentElement(this, element);
+    },
+  };
+}
 
-    template.innerHTML = `<section id="${id}"><h1>favorites</h1></section>`;
-    this.element = template.content.children[0];
-    this.element.component = this;
+function PageComponent({ id, props = {} }) {
+  return {
+    id,
+    element: null,
+    renders: 0,
 
-    return {
-      done: false,
-      value: this.element,
-    };
-  },
-});
+    next(input = {}) {
+      this.renders += 1;
 
-const createInterator = () => {
+      const template = document.createElement("template");
+      template.innerHTML = "<section><h1></h1></section>";
+
+      const element = template.content.firstElementChild;
+      element.id = this.id;
+      element.querySelector("h1").textContent = input.title ?? props.title ?? this.id;
+
+      return commitComponentElement(this, element);
+    },
+  };
+}
+
+function createInterator() {
   const atoms = {
     route: "home",
   };
 
   return {
     dispatch(message) {
-      if (message.type === "navigate") atoms.route = message.route;
-      return atoms;
+      const changed = [];
+
+      if (
+        message.type === "navigate" &&
+        ["home", "favorites"].includes(message.route) &&
+        message.route !== atoms.route
+      ) {
+        atoms.route = message.route;
+        changed.push("route");
+      }
+
+      return {
+        changed,
+        snapshot: Object.freeze({ ...atoms }),
+      };
     },
-    getAtoms() {
-      return atoms;
+
+    getSnapshot() {
+      return Object.freeze({ ...atoms });
     },
   };
-};
+}
 
 const AppFrontend = {
   *frontend({ rootSelector = "#app" } = {}) {
     const root = yield { type: "resolveRoot", rootSelector };
     const interator = yield { type: "createInterator" };
-    const topbar = yield { type: "createComponent", id: "topbar", component: TopbarComponent };
-    const home = yield { type: "createComponent", id: "home", component: HomeComponent };
-    const favorites = yield { type: "createComponent", id: "favorites", component: FavoritesComponent };
+    const topbar = yield {
+      type: "createComponent",
+      id: "topbar",
+      component: TopbarComponent,
+    };
+    const home = yield {
+      type: "createComponent",
+      id: "home",
+      component: PageComponent,
+      props: { title: "home" },
+    };
+    const favorites = yield {
+      type: "createComponent",
+      id: "favorites",
+      component: PageComponent,
+      props: { title: "favorites" },
+    };
 
     yield {
-      type: "render",
+      type: "mount",
       root,
       interator,
       children: { topbar, home, favorites },
@@ -101,64 +138,111 @@ const AppFrontend = {
   },
 };
 
-function render(root, interator, children) {
-  const route = interator.getAtoms().route;
-  const fragment = document.createDocumentFragment();
-  const main = document.createElement("main");
+function renderRoute(root, interator, children) {
+  const route = interator.getSnapshot().route;
+  const outlet = root.querySelector("[data-outlet]");
+  const element = children[route].next().value;
 
-  fragment.append(children.topbar.next().value);
-  main.append(children[route].next().value);
-  fragment.append(main);
+  if (element.parentElement !== outlet) {
+    outlet.replaceChildren(element);
+  }
+}
 
-  root.replaceChildren(fragment);
+function mount(root, interator, children) {
+  const outlet = document.createElement("main");
+  outlet.dataset.outlet = "";
+  root.replaceChildren(children.topbar.next().value, outlet);
+  renderRoute(root, interator, children);
+}
+
+function messageFrom(target) {
+  const message = {
+    type: target.dataset.message,
+    sourceId: target.dataset.sourceId,
+  };
+
+  if (target.dataset.route !== undefined) {
+    message.route = target.dataset.route;
+  }
+
+  if (target.dataset.value !== undefined) {
+    message.value = target.dataset.value;
+  } else if (target.matches("input, select, textarea")) {
+    message.value = target.value;
+  }
+
+  if ("checked" in target) {
+    message.checked = target.checked;
+  }
+
+  return message;
+}
+
+function wireEvents(root, interator, children) {
+  root.addEventListener("click", (event) => {
+    if (!(event.target instanceof Element)) return;
+
+    const target = event.target.closest("[data-message]");
+
+    if (!target || !root.contains(target)) return;
+
+    const result = interator.dispatch(messageFrom(target));
+
+    if (result.changed.includes("route")) {
+      renderRoute(root, interator, children);
+    }
+  });
 }
 
 function executeStep(step, context) {
-  if (step.type === "resolveRoot") return document.querySelector(step.rootSelector);
-  if (step.type === "createInterator") return createInterator();
-
-  if (step.type === "createComponent") {
-    return step.component({ id: step.id });
+  if (step.type === "resolveRoot") {
+    context.root = document.querySelector(step.rootSelector);
+    return context.root;
   }
 
-  if (step.type === "render") {
-    render(step.root, step.interator, step.children);
+  if (step.type === "createInterator") {
+    context.interator = createInterator();
+    return context.interator;
+  }
+
+  if (step.type === "createComponent") {
+    const component = step.component({
+      id: step.id,
+      props: step.props ?? {},
+      interator: context.interator,
+    });
+
+    context.children[step.id] = component;
+    return component;
+  }
+
+  if (step.type === "mount") {
+    mount(step.root, step.interator, step.children);
     return null;
   }
 
   if (step.type === "wireEvents") {
-    step.root.addEventListener("click", (event) => {
-      const target = event.target.closest("[data-cid][data-message]");
-      if (!target) return;
-
-      const message = {
-        ...target.dataset,
-        type: target.dataset.message,
-        value: target.dataset.value ?? target.value,
-        target,
-        event,
-      };
-
-      step.interator.dispatch(message);
-      step.children[target.dataset.cid]?.next(message);
-      render(step.root, step.interator, step.children);
-    });
-
-    return context;
+    wireEvents(step.root, step.interator, step.children);
+    return null;
   }
 
-  return null;
+  throw new TypeError(`Step desconhecido: ${step.type}`);
 }
 
 function runApp(appFrontend) {
-  const context = {};
+  const context = {
+    root: null,
+    interator: null,
+    children: {},
+  };
   const app = appFrontend.frontend();
   let cursor = app.next();
 
   while (!cursor.done) {
-    const result = executeStep(cursor.value, context);
-    cursor = app.next(result);
+    cursor = app.next(executeStep(cursor.value, context));
   }
+
+  return context;
 }
 
-runApp(AppFrontend);
+window.appDebug = runApp(AppFrontend);

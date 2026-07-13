@@ -1,48 +1,147 @@
 # Events
 
-Events are inputs passed back into live components through `.next(message)` or component action methods.
+## Sumario
 
-Recommended delegated DOM protocol:
+- [Escolha o owner](#escolha-o-owner)
+- [Conecte eventos locais](#conecte-eventos-locais)
+- [Delegue mensagens globais](#delegue-mensagens-globais)
+- [Preserve a separacao de mensagens](#preserve-a-separacao-de-mensagens)
+- [Limpe efeitos externos](#limpe-efeitos-externos)
 
-- `data-cid`
-- `data-message`
-- `data-route`
-- `data-value`
-- `data-name`
+## Escolha o owner
 
-Message shape:
+| Escopo | Owner | Fluxo |
+| --- | --- | --- |
+| Estado de um componente | componente | listener ligado ao root novo -> handler -> `next(statePatch)` |
+| Rota, sessao ou efeito compartilhado | app/Interator | listener delegado no root -> mensagem serializavel -> `dispatch()` -> render afetado |
+
+Escolha um owner por acao. Nao ligue o mesmo clique ao componente e ao driver.
+
+## Conecte eventos locais
+
+Conecte handlers depois de criar o elemento e antes de publica-lo:
 
 ```js
-{
-  ...target.dataset,
-  type: target.dataset.message,
-  value: target.dataset.value ?? target.value,
-  checked: target.checked,
-  target,
-  event,
-}
+const SaveComponent = ({ id }) => ({
+  id,
+  state: { saved: false },
+  element: null,
+
+  connect(element) {
+    element
+      .querySelector("[data-action='save']")
+      .addEventListener("click", this.handleSave.bind(this));
+
+    return element;
+  },
+
+  handleSave(event) {
+    event.preventDefault();
+    return this.next({ saved: true });
+  },
+});
 ```
 
-Local inline action protocol:
+Execute `connect(element)` em cada `next()`. O root anterior e seus listeners desaparecem juntos depois de `replaceWith()`.
+
+Use `event.currentTarget` quando o listener estiver no proprio controle. Use `event.target.closest(selector)` apenas ao delegar dentro de um root e confirme que o resultado pertence a esse root.
+
+## Delegue mensagens globais
+
+Use atributos declarativos para eventos do app:
 
 ```html
-<button onclick="document.getElementById('counter-1').component.addCountingState(1)">
-  +1
+<button
+  type="button"
+  data-source-id="topbar"
+  data-message="navigate"
+  data-route="favorites"
+>
+  favoritos
 </button>
 ```
 
-Flow with delegated events:
+Normalize somente dados serializaveis. Nao armazene `event` nem `target` no Interator:
 
-1. DOM emits interaction.
-2. Driver normalizes message.
-3. Interator handles global effects.
-4. Driver calls `.next(message)` on the target component.
-5. Component returns an `Element` and replaces its connected root when needed.
+```js
+function messageFrom(target) {
+  const message = {
+    type: target.dataset.message,
+    sourceId: target.dataset.sourceId,
+  };
 
-Flow with local inline actions:
+  if (target.dataset.route !== undefined) {
+    message.route = target.dataset.route;
+  }
 
-1. DOM emits interaction.
-2. Handler gets the component from `element.component`.
-3. Handler calls a component method.
-4. Method calls `this.next(newState)`.
-5. Component replaces its connected root.
+  if (target.dataset.value !== undefined) {
+    message.value = target.dataset.value;
+  } else if (target.matches("input, select, textarea")) {
+    message.value = target.value;
+  }
+
+  if ("checked" in target) {
+    message.checked = target.checked;
+  }
+
+  return message;
+}
+
+root.addEventListener("click", (event) => {
+  if (!(event.target instanceof Element)) return;
+
+  const target = event.target.closest("[data-message]");
+
+  if (!target || !root.contains(target)) return;
+
+  const result = interator.dispatch(messageFrom(target));
+  renderAffectedOutlet(result);
+});
+```
+
+Faca `dispatch()` retornar um resultado explicito, como `{ changed: ["route"], snapshot }`. Use esse resultado para atualizar somente o outlet ou componente afetado.
+
+## Preserve a separacao de mensagens
+
+Mantenha estas assinaturas distintas:
+
+```js
+component.next({ counting: 2 });
+interator.dispatch({ type: "navigate", route: "favorites" });
+```
+
+Nao execute:
+
+```js
+component.next({
+  type: "click",
+  target: event.target,
+  event,
+});
+```
+
+Esse objeto nao e um patch de estado; ele pode contaminar o estado com referencias DOM obsoletas e nao serializaveis.
+
+## Limpe efeitos externos
+
+Listeners ligados ao root do componente sao descartados com o root. Para recursos externos, implemente teardown:
+
+```js
+const component = {
+  abortController: null,
+
+  start() {
+    this.abortController = new AbortController();
+    window.addEventListener("resize", this.handleResize.bind(this), {
+      signal: this.abortController.signal,
+    });
+  },
+
+  dispose() {
+    this.abortController?.abort();
+    this.abortController = null;
+  },
+};
+```
+
+Nao chame `start()` dentro de cada `next()`.

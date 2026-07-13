@@ -1,247 +1,195 @@
 ---
-name: static-next-interator-frontend
-description: Use when building JavaScript frontends without frameworks where components are live iterator-like objects with `id`, `state`, `element`, and `next(newState)`, rendering DOM elements from templates and updating by replacing their own connected element.
+name: static-next-interator-frontend-skill
+description: Build, migrate, refactor, or review framework-free vanilla JavaScript frontends that use live nextable components with DOM identity, state patches, template-created elements, bound local handlers, self-owned root replacement, optional AppFrontend generators, Interator coordination, and runtime contracts. Use when implementing or auditing this paradigm, especially component lifecycle, event ownership, routing composition, or runnable examples.
 ---
 
 # Static Next Interator Frontend
 
-## Objetivo
+## Aplique o contrato central
 
-Criar frontends JavaScript sem framework usando componentes vivos com `next(newState)` como operacao unica de renderizacao e atualizacao.
+Modele cada instancia como um componente vivo e nextable, nao como um iterator ECMAScript completo.
 
-A regra central:
+- Exponha `id`, `element` e `next(input)` no contrato base.
+- Adicione `state` somente a componentes stateful.
+- Reserve `next(statePatch)` para patches de estado ou dados de renderizacao.
+- Encaminhe mensagens DOM para handlers ou para o Interator; nunca mescle um `Event` bruto em `state`.
+- Crie um novo elemento raiz a cada `next()` usando `<template>`.
+- Atribua `element.component = this` ao novo elemento.
+- Conecte handlers locais ao novo elemento antes do commit.
+- Substitua `this.element` com `replaceWith()` quando o root anterior estiver conectado.
+- Atualize `this.element` e retorne `{ value: element, done: false }`.
 
-- componentes sao objetos vivos com `id`, `state`, `element` e `next(newState)`
-- `next()` sempre retorna `{ value: Element, done: false }`
-- `next(newState)` mescla estado novo em `this.state`
-- o componente renderiza DOM real a partir de `<template>`
-- quando `this.element` ja esta conectado, o novo elemento substitui o antigo com `replaceWith`
-- cada elemento raiz recebe `element.component = this`
-- handlers inline chamam metodos pelo proprio elemento: `document.getElementById(id).component.metodo(...)`
-- composicao de app ainda pode usar `AppFrontend` com `*frontend()` para ordenar criacao, render e wiring
+Trate `{ value, done: false }` como o protocolo nextable da skill. Nao prometa interoperabilidade com `Iterator` sem tambem implementar `[Symbol.iterator]`, `return()` e termino.
 
-## Modelo Mental
+## Implemente o ciclo de um componente
 
-Um componente e um objeto com estado e identidade DOM.
-
-```js
-component.next({ counting: 1 }).value;
-```
-
-Significa:
-
-1. O estado recebido e mesclado em `component.state`.
-2. Um novo DOM raiz e criado via `<template>`.
-3. O novo DOM recebe `element.component = component`.
-4. Se o elemento anterior esta conectado, ele e substituido.
-5. O `Element` atual e retornado em `{ value, done: false }`.
-
-## Stateful Components
-
-Use este formato quando o componente tem estado local e acoes proprias.
+Padronize factories como `Component({ id, props, interator })`, mesmo quando algum argumento nao for usado.
 
 ```js
-function CounterComponent(id) {
-  const title = "Contador";
-
-  const actions = [
-    { text: "+1", call: "addCountingState(1)" },
-    { text: "+10", call: "addCountingState(10)" },
-    { text: "set 100", call: "setCountingState(100)" },
-    { text: "mudar label", call: "changeLabel('Estado alterado')" },
-    { text: "reset", call: "resetState()" },
-  ];
-
-  const actionButtons = () =>
-    actions
-      .map(
-        (action) => /*html*/ `
-          <button onclick="document.getElementById('${id}').component.${action.call}">
-            ${action.text}
-          </button>
-        `
-      )
-      .join("");
-
+function TextComponent({ id, props = {} }) {
   return {
     id,
-
     state: {
-      counting: 0,
-      label: title,
+      text: props.text ?? "",
     },
-
     element: null,
 
-    next(newState = {}) {
-      Object.assign(this.state, newState);
+    connect(element) {
+      element
+        .querySelector("[data-action='clear']")
+        .addEventListener("click", this.handleClear.bind(this));
+
+      return element;
+    },
+
+    handleClear() {
+      return this.next({ text: "" });
+    },
+
+    next(statePatch = {}) {
+      if (
+        statePatch === null ||
+        typeof statePatch !== "object" ||
+        Array.isArray(statePatch) ||
+        Object.keys(statePatch).some(key => key !== "text")
+      ) {
+        throw new TypeError("TextComponent recebeu um statePatch invalido");
+      }
+
+      if (
+        Object.hasOwn(statePatch, "text") &&
+        typeof statePatch.text !== "string"
+      ) {
+        throw new TypeError("TextComponent.state.text deve ser string");
+      }
+
+      Object.assign(this.state, statePatch);
 
       const template = document.createElement("template");
-
       template.innerHTML = /*html*/ `
-        <div id="${this.id}">
-          <h2>${this.state.label}</h2>
-          <span>${this.state.counting}</span>
-          ${actionButtons()}
-        </div>
+        <section>
+          <span data-slot="text"></span>
+          <button type="button" data-action="clear">limpar</button>
+        </section>
       `.trim();
 
-      this.element = ((element) =>
-        this.element?.isConnected
-          ? (
-              this.element.replaceWith(
-                (element.component = this, element)
-              ),
-              element
-            )
-          : (
-              element.component = this,
-              element
-            )
-      )(template.content.children[0]);
+      if (template.content.childElementCount !== 1) {
+        throw new TypeError("TextComponent deve renderizar um unico elemento raiz");
+      }
+
+      const element = template.content.firstElementChild;
+      element.id = this.id;
+      element.querySelector("[data-slot='text']").textContent = this.state.text;
+      element.component = this;
+      this.connect(element);
+
+      if (this.element?.isConnected) {
+        this.element.replaceWith(element);
+      }
+
+      this.element = element;
 
       return {
-        value: this.element,
+        value: element,
         done: false,
       };
-    },
-
-    addCountingState(number) {
-      return this.next({
-        counting: this.state.counting + number,
-      });
-    },
-
-    setCountingState(number) {
-      return this.next({
-        counting: number,
-      });
-    },
-
-    changeLabel(label) {
-      return this.next({
-        label,
-      });
-    },
-
-    resetState() {
-      return this.next({
-        counting: 0,
-        label: title,
-      });
     },
   };
 }
 ```
 
-Montagem:
+Monte a primeira renderizacao uma unica vez:
 
 ```js
-document.body.append(
-  CounterComponent("counter-1").next().value
-);
-```
-
-## Functional Components
-
-Quando o componente nao precisa de estado mutavel nem metodos de acao, mantenha o mesmo contrato de iterator e retorne DOM real.
-
-```js
-const LabelComponent = ({ id, props = {} }) => ({
-  id,
-  element: null,
-
-  next(message = {}) {
-    const text = message.text ?? props.text ?? "";
-    const template = document.createElement("template");
-
-    template.innerHTML = `<span id="${id}">${text}</span>`;
-    this.element = template.content.children[0];
-    this.element.component = this;
-
-    return {
-      done: false,
-      value: this.element,
-    };
-  },
+const text = TextComponent({
+  id: "greeting",
+  props: { text: "Ola" },
 });
+
+document.querySelector("#app").append(text.next().value);
 ```
 
-## App Frontend
+Leia [references/component-contract.md](references/component-contract.md) antes de implementar componentes stateful ou stateless completos.
 
-A composicao do app pode continuar como um frontend generator. O generator descreve a ordem; componentes continuam sendo objetos com `next()`.
+## Separe eventos locais de eventos globais
+
+Conecte uma acao local no `connect(element)` do componente quando ela alterar apenas seu estado.
+
+- Use `addEventListener(type, handler.bind(this))`.
+- Use `event.currentTarget` para ler dados do controle que recebeu o listener.
+- Execute `connect(element)` em cada novo root, pois `replaceWith()` remove o root e seus listeners anteriores.
+- Mantenha listeners de `document`, `window`, timers e subscriptions fora do ciclo de renderizacao e implemente teardown explicito para eles.
+
+Delegue no root do app somente mensagens globais, como rota, sessao ou sincronizacao. Normalize a mensagem, envie-a ao Interator e renderize apenas a regiao afetada. Nao chame `component.next(message)` com o objeto DOM bruto.
+
+Leia [references/events.md](references/events.md) para escolher o protocolo local ou global.
+
+## Componha o app sem tomar o ciclo dos componentes
+
+Use `AppFrontend.frontend()` apenas para ordenar montagem e wiring:
 
 ```js
 const AppFrontend = {
   *frontend({ rootSelector = "#app" } = {}) {
     const root = yield { type: "resolveRoot", rootSelector };
     const interator = yield { type: "createInterator" };
-    const topbar = yield { type: "createComponent", id: "topbar", component: TopbarComponent };
-    const home = yield { type: "createComponent", id: "home", component: HomeComponent };
+    const topbar = yield {
+      type: "createComponent",
+      id: "topbar",
+      component: TopbarComponent,
+    };
+    const home = yield {
+      type: "createComponent",
+      id: "home",
+      component: HomeComponent,
+    };
 
-    yield { type: "render", root, interator, children: { topbar, home } };
+    yield { type: "mount", root, interator, children: { topbar, home } };
     yield { type: "wireEvents", root, interator, children: { topbar, home } };
   },
 };
 ```
 
-## Driver
+Faca o driver:
 
-O driver executa steps do app. Ele pode:
+- criar componentes com `component({ id, props, interator })`;
+- montar cada resultado inicial uma unica vez;
+- delegar mensagens globais ao Interator;
+- passar aos componentes apenas patches ou dados derivados;
+- atualizar somente o outlet ou componente afetado.
 
-- resolver root DOM
-- criar interator
-- criar componentes chamando `component(id)` ou `component({ id })`
-- normalizar eventos em mensagens
-- chamar `.next(message)` nos componentes vivos
-- anexar ou substituir `Element` retornado em `.value`
+Nao faca o driver renderizar um componente antes de reconstruir o app inteiro. Leia [references/program-generation.md](references/program-generation.md) para o contrato de steps e [references/interactors.md](references/interactors.md) para ownership global.
 
-O driver nao deve recriar o protocolo interno do componente. O componente sabe renderizar, atualizar e substituir seu proprio elemento.
+## Trate templates e dados com seguranca
 
-## Runtime Type Contracts
+- Mantenha o HTML do template estatico sempre que possivel.
+- Aplique texto dinamico com `textContent`.
+- Aplique `id`, `value`, URLs e outros atributos por propriedades DOM ou `setAttribute()` apos validar o valor.
+- Exija exatamente um elemento raiz por renderizacao.
+- Nao gere codigo em `onclick` nem use strings de metodo vindas de dados externos.
+- Nao considere `JSON.stringify()` um escape de HTML.
+- Use escaping contextual somente quando a interpolacao em HTML for inevitavel.
 
-Quando o frontend precisar de "type definitions" em JS puro, use contratos de runtime em vez de `.d.ts`.
+## Use contratos de runtime como complemento
 
-- Defina schemas como objetos de validadores.
-- Crie modelos com prototype + proxy.
-- Valide dados no construtor e em toda atribuição.
-- Rejeite propriedades fora do schema.
-- Use métodos compartilhados no prototype para comportamento de domínio.
+Use schemas de runtime para validar entradas e mutacoes em JavaScript puro. Mantenha JSDoc, `checkJs`, TypeScript ou `.d.ts` quando o projeto tambem precisar de verificacao estatica; uma abordagem nao substitui automaticamente a outra.
 
-Leia `references/runtime-types.md` quando o projeto precisar de modelos, componentes, mensagens, eventos, rotas ou entidades com contrato verificável em runtime.
+Leia [references/runtime-types.md](references/runtime-types.md) ao definir componentes, mensagens, steps, rotas ou entidades verificaveis em runtime.
 
-## Regras
+## Verifique a implementacao
 
-### Faca
+- Confirme que o segundo `next()` remove o root anterior e preserva `element.component`.
+- Confirme que handlers continuam ativos depois de uma substituicao.
+- Confirme que mensagens DOM nao aparecem no estado local.
+- Confirme que uma acao produz somente uma renderizacao do componente ou outlet afetado.
+- Teste texto e IDs hostis para detectar interpolacao insegura.
+- Valide sintaxe dos exemplos e execute os fluxos runnable em navegador real.
+- Execute `node scripts/validate.mjs` antes de publicar a skill.
 
-- Use objetos vivos com `id`, `state`, `element` e `next(newState)`.
-- Retorne sempre `{ value: this.element, done: false }`.
-- Use `<template>` para transformar HTML em DOM.
-- Atribua `element.component = this` no elemento raiz renderizado.
-- Use `this.element.replaceWith(newElement)` quando o elemento anterior esta conectado.
-- Deixe metodos de acao chamarem `this.next(...)`.
-- Use `document.getElementById(id).component.metodo(...)` em handlers inline pequenos.
-- Use `append(component.next().value)` para montagem inicial.
-- Use `JSON.stringify(id)` ao interpolar `id` em JavaScript inline dinamico.
-- Use `escapeHtmlAttr()` em atributos HTML quando valores vierem de dados externos.
-- Use `CSS.escape(id)` quando precisar montar selectors.
+Use os exemplos conforme a necessidade:
 
-### Nao faca
-
-- Nao use `create()` + boot yields para componentes stateful novos.
-- Nao use `outerHTML` como mecanismo padrao de update.
-- Nao retorne string HTML de componentes que serao montados no DOM.
-- Nao use `append(string)` esperando HTML parseado.
-- Nao deixe o driver manipular estado interno de componente local.
-- Nao transforme componente local em coordenador global.
-
-## Glossario
-
-- `component`: objeto vivo que possui estado, elemento atual e `next()`.
-- `next(newState)`: renderiza o componente e aplica estado incremental.
-- `state`: estado local do componente.
-- `element`: ultimo elemento raiz renderizado.
-- `element.component`: referencia do DOM para o objeto vivo.
-- `FunctionalComponent`: componente sem estado mutavel que ainda retorna `{ value: Element, done: false }`.
-- `AppFrontend`: generator de composicao do app.
-- `interator`: coordenador de eventos, atomos globais e efeitos compartilhados.
+- [examples/component-example.md](examples/component-example.md): componente stateful e stateless.
+- [examples/bootapp-example.md](examples/bootapp-example.md): driver do `AppFrontend`.
+- [examples/event-example.md](examples/event-example.md): markup de mensagens globais.
+- [examples/generator-example.md](examples/generator-example.md): sequencia de steps.
+- `examples/runnable/`: smoke tests manuais em navegador.

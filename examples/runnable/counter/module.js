@@ -1,97 +1,138 @@
-function CounterComponent(id) {
-  const title = "Contador";
+function commitComponentElement(component, element) {
+  if (!(element instanceof Element)) {
+    throw new TypeError("next() deve produzir um Element");
+  }
 
-  const actions = [
-    { text: "+1", call: "addCountingState(1)" },
-    { text: "+10", call: "addCountingState(10)" },
-    { text: "set 100", call: "setCountingState(100)" },
-    { text: "mudar label", call: "changeLabel('Estado alterado')" },
-    { text: "reset", call: "resetState()" },
-  ];
+  element.component = component;
+  component.connect?.(element);
 
-  const actionButtons = () =>
-    actions
-      .map(
-        (action) => /*html*/ `
-          <button onclick="document.getElementById('${id}').component.${action.call}">
-            ${action.text}
-          </button>
-        `
-      )
-      .join("");
+  if (component.element?.isConnected) {
+    component.element.replaceWith(element);
+  }
+
+  component.element = element;
+
+  return {
+    value: element,
+    done: false,
+  };
+}
+
+function CounterComponent({ id, props = {} }) {
+  const initialState = {
+    counting: props.counting ?? 0,
+    label: props.label ?? "Contador",
+  };
 
   return {
     id,
-
-    state: {
-      counting: 0,
-      label: title,
-    },
-
+    state: { ...initialState },
     element: null,
 
-    next(newState = {}) {
-      Object.assign(this.state, newState);
+    connect(element) {
+      for (const control of element.querySelectorAll("[data-action]")) {
+        control.addEventListener("click", this.handleAction.bind(this));
+      }
+
+      return element;
+    },
+
+    handleAction(event) {
+      const control = event.currentTarget;
+
+      switch (control.dataset.action) {
+        case "add":
+          return this.addCountingState(Number(control.dataset.amount));
+        case "set":
+          return this.setCountingState(Number(control.dataset.value));
+        case "label":
+          return this.changeLabel(control.dataset.label);
+        case "reset":
+          return this.resetState();
+        default:
+          throw new TypeError("Acao local desconhecida");
+      }
+    },
+
+    next(statePatch = {}) {
+      if (
+        statePatch === null ||
+        typeof statePatch !== "object" ||
+        Array.isArray(statePatch)
+      ) {
+        throw new TypeError("CounterComponent recebeu um statePatch invalido");
+      }
+
+      const allowedKeys = new Set(["counting", "label"]);
+
+      for (const key of Object.keys(statePatch)) {
+        if (!allowedKeys.has(key)) {
+          throw new TypeError(`CounterComponent.state.${key} nao existe`);
+        }
+      }
+
+      const nextState = {
+        ...this.state,
+        ...statePatch,
+      };
+
+      if (!Number.isFinite(nextState.counting)) {
+        throw new TypeError("CounterComponent.state.counting deve ser finito");
+      }
+
+      if (typeof nextState.label !== "string") {
+        throw new TypeError("CounterComponent.state.label deve ser string");
+      }
+
+      Object.assign(this.state, statePatch);
 
       const template = document.createElement("template");
-
       template.innerHTML = /*html*/ `
-        <div id="${this.id}">
-          <h2>${this.state.label}</h2>
-
-          <span>${this.state.counting}</span>
-
-          ${actionButtons()}
-        </div>
+        <section>
+          <h2 data-slot="label"></h2>
+          <output data-slot="counting"></output>
+          <button type="button" data-action="add" data-amount="1">+1</button>
+          <button type="button" data-action="add" data-amount="10">+10</button>
+          <button type="button" data-action="set" data-value="100">set 100</button>
+          <button type="button" data-action="label" data-label="Estado alterado">
+            mudar label
+          </button>
+          <button type="button" data-action="reset">reset</button>
+        </section>
       `.trim();
 
-      this.element = ((element) =>
-        this.element?.isConnected
-          ? (
-              this.element.replaceWith(
-                (element.component = this, element)
-              ),
-              element
-            )
-          : (
-              element.component = this,
-              element
-            )
-      )(template.content.children[0]);
+      if (template.content.childElementCount !== 1) {
+        throw new TypeError("CounterComponent deve renderizar um unico root");
+      }
 
-      return {
-        value: this.element,
-        done: false,
-      };
+      const element = template.content.firstElementChild;
+      element.id = this.id;
+      element.querySelector("[data-slot='label']").textContent = this.state.label;
+      element.querySelector("[data-slot='counting']").textContent = this.state.counting;
+
+      return commitComponentElement(this, element);
     },
 
     addCountingState(number) {
-      return this.next({
-        counting: this.state.counting + number,
-      });
+      return this.next({ counting: this.state.counting + number });
     },
 
     setCountingState(number) {
-      return this.next({
-        counting: number,
-      });
+      return this.next({ counting: number });
     },
 
     changeLabel(label) {
-      return this.next({
-        label,
-      });
+      return this.next({ label });
     },
 
     resetState() {
-      return this.next({
-        counting: 0,
-        label: title,
-      });
+      return this.next(initialState);
     },
   };
 }
 
-document.body.append(
-  CounterComponent("counter-1").next().value
-);
+const counter = CounterComponent({ id: "counter-1" });
+document.querySelector("#app").append(counter.next().value);
+
+window.counter = counter;
+window.CounterComponent = CounterComponent;

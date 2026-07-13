@@ -1,22 +1,34 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Event Example</title>
+  <link rel="icon" href="data:,">
+  <title>Exemplo de mensagens globais</title>
 </head>
 <body>
-  <a href="#favoritos" data-cid="topbar" data-message="navigate" data-route="favoritos">
-    Favoritos
-  </a>
+  <main id="app">
+    <button
+      type="button"
+      data-source-id="topbar"
+      data-message="navigate"
+      data-route="favorites"
+    >
+      Favoritos
+    </button>
 
-  <button
-    type="button"
-    data-cid="listing"
-    data-message="toggleFavorite"
-    data-property-id="apt-204"
-  >
-    Favoritar
-  </button>
+    <button
+      type="button"
+      data-source-id="listing"
+      data-message="toggleFavorite"
+      data-value="apt-204"
+    >
+      Favoritar imovel
+    </button>
+
+    <output id="last-message" aria-live="polite">nenhuma mensagem</output>
+  </main>
+
+  <script src="./module.js"></script>
 </body>
 </html>
