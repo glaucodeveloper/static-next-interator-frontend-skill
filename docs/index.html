@@ -83,18 +83,10 @@
 </head>
 <body>
   <a class="skip" href="#conteudo">Pular para o conteúdo</a>
-  <header><nav class="shell" aria-label="Principal"><a class="brand" href="#inicio">Static Next</a><ul><li><a href="#introducao">Introdução</a></li><li><a href="#anatomia">Anatomia</a></li><li><a href="#transparencia">IA</a></li><li><a href="#galeria">Galeria</a></li><li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">GitHub</a></li></ul></nav></header>
+  <header><nav class="shell" aria-label="Principal"><a class="brand" href="#introducao">Static Next</a><ul><li><a href="#introducao">Introdução</a></li><li><a href="#anatomia">Anatomia</a></li><li><a href="#transparencia">IA</a></li><li><a href="#galeria">Galeria</a></li><li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">GitHub</a></li></ul></nav></header>
   <main id="conteudo">
-    <div id="inicio" class="shell hero">
-      <p class="eyebrow">Generator nativo · state patch · DOM vivo</p>
-      <h1>O componente é um programa suspenso.</h1>
-      <p class="lede">Uma única <code>function*</code> guarda estado em <code>this</code>, materializa um <code>DocumentFragment</code> descartável, entrega um <code>HTMLElement</code> vivo e recebe a próxima transição por <code>next(StatePatch)</code>.</p>
-      <p class="lede">A estrutura foi desenhada para ser lida do mesmo modo por quem programa, por quem revisa e pela IA que colabora com ambos: cada causa e cada efeito permanecem visíveis na linha do componente.</p>
-      <div class="pill-row"><span class="pill">function*</span><span class="pill">yield HTMLElement</span><span class="pill">next(StatePatch)</span><span class="pill">element.component</span><span class="pill">replaceWith</span></div>
-    </div>
-
     <section id="introducao"><div class="shell">
-      <p class="eyebrow">Antes do primeiro exemplo</p><h2>Uma interface inteira reduzida a uma sequência observável</h2>
+      <p class="eyebrow">Antes do primeiro exemplo</p><h1>Uma interface inteira reduzida a uma sequência observável</h1>
       <p class="intro">Bibliotecas de interface frequentemente distribuem uma única atualização entre estado, hooks, scheduler, reconciliação, bindings e convenções de build. Static Next escolhe outra direção: conservar a complexidade do produto, mas tornar explícito o mecanismo que a executa.</p>
       <p class="intro">O componente não descreve apenas como a tela parece. Ele conserva sua instância em <code>this</code>, expõe métodos ao próprio root, produz o elemento atual, suspende e espera a informação mínima necessária para continuar. Essa informação é o <code>StatePatch</code>.</p>
       <div class="cards">
@@ -169,6 +161,14 @@ function* CounterComponent({ id, props = {} }) {
   }
 }</code></pre>
       </div>
+    </div></section>
+
+    <section id="conceito" class="hero"><div class="shell">
+      <p class="eyebrow">Generator nativo · state patch · DOM vivo</p>
+      <h2>O componente é um programa suspenso.</h2>
+      <p class="lede">Uma única <code>function*</code> guarda estado em <code>this</code>, materializa um <code>DocumentFragment</code> descartável, entrega um <code>HTMLElement</code> vivo e recebe a próxima transição por <code>next(StatePatch)</code>.</p>
+      <p class="lede">A estrutura foi desenhada para ser lida do mesmo modo por quem programa, por quem revisa e pela IA que colabora com ambos: cada causa e cada efeito permanecem visíveis na linha do componente.</p>
+      <div class="pill-row"><span class="pill">function*</span><span class="pill">yield HTMLElement</span><span class="pill">next(StatePatch)</span><span class="pill">element.component</span><span class="pill">replaceWith</span></div>
     </div></section>
 
     <section id="yield"><div class="shell"><p class="eyebrow">O ponto decisivo</p><h2><code>Object.assign(state, yield element)</code></h2><p class="intro">A expressão completa une a saída da renderização atual à aplicação automática do próximo state patch.</p>
