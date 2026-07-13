@@ -288,6 +288,7 @@ counter.next({ counting: 1 });</code></pre>
         <div class="example-picker">
           <label for="ui-example">Escolha uma interface complexa
             <select id="ui-example">
+              <option value="counter">Contador clássico com ações locais</option>
               <option value="checkout">Checkout com validação e resumo</option>
               <option value="crm">CRM com pipeline e tabela de leads</option>
               <option value="kanban">Kanban com colunas e cartões</option>
@@ -295,7 +296,7 @@ counter.next({ counting: 1 });</code></pre>
               <option value="inbox">Inbox com seleção e painel de leitura</option>
             </select>
           </label>
-          <span class="preview-chip">UI gallery · 5 cenários</span>
+          <span class="preview-chip">UI gallery · 6 cenários</span>
         </div>
 
         <div class="demo-layout">
@@ -641,6 +642,12 @@ route.extra = "não permitido"; // lança TypeError</code></pre>
       const code = document.querySelector("#gallery-code");
       const trace = document.querySelector("#gallery-trace");
       const examples = {
+        counter: {
+          title: "Contador clássico: estado, eventos e commit", label: "00 · componente base completo",
+          description: "O exemplo de referência para a skill: cada ação local produz um patch validado, cria um novo root e reconecta os handlers antes do commit.",
+          markup: `<div class="ui-preview"><div class="ui-top"><b>Contador</b><span>stateful</span></div><div class="ui-kpis"><span>counting<br><b>42</b></span><span>label<br><b>Pedidos</b></span><span>status<br><b>ativo</b></span></div><div class="ui-row"><span>+1 · +10 · set 100 · reset</span><b>ações locais</b></div></div>`,
+          code: `function CounterComponent({ id, props = {} }) {\n  const initialState = {\n    counting: props.counting ?? 0,\n    label: props.label ?? "Contador",\n  };\n\n  return {\n    id, state: { ...initialState }, element: null,\n    connect(element) {\n      for (const control of element.querySelectorAll("[data-action]")) {\n        control.addEventListener("click", this.handleAction.bind(this));\n      }\n    },\n    handleAction(event) {\n      const control = event.currentTarget;\n      if (control.dataset.action === "add") {\n        return this.next({ counting: this.state.counting + Number(control.dataset.amount) });\n      }\n      if (control.dataset.action === "reset") return this.next(initialState);\n      throw new TypeError("ação local desconhecida");\n    },\n    next(statePatch = {}) {\n      validateCounterPatch(statePatch);\n      Object.assign(this.state, statePatch);\n      const element = renderCounter(this.state);\n      return commitComponentElement(this, element);\n    },\n  };\n}`
+        },
         checkout: {
           title: "Checkout com validação e resumo", label: "01 · checkout stateful",
           description: "Endereço, pagamento, cupom e totais derivam de um único statePatch validado.",
