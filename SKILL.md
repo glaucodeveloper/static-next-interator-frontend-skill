@@ -5,6 +5,8 @@ description: Build, migrate, refactor, or review framework-free vanilla JavaScri
 
 # Static Next Interator Frontend
 
+Leia primeiro [references/component-anatomy.md](references/component-anatomy.md). Ele é o contrato canônico do generator, da montagem, dos eventos, do template e do auto-update.
+
 ## Aplique o contrato central
 
 Modele cada instancia como um componente vivo e nextable, nao como um iterator ECMAScript completo.
@@ -184,10 +186,4 @@ Leia [references/runtime-types.md](references/runtime-types.md) ao definir compo
 - Valide sintaxe dos exemplos e execute os fluxos runnable em navegador real.
 - Execute `node scripts/validate.mjs` antes de publicar a skill.
 
-Use os exemplos conforme a necessidade:
-
-- [examples/component-example.md](examples/component-example.md): componente stateful e stateless.
-- [examples/bootapp-example.md](examples/bootapp-example.md): driver da funcao `frontend`.
-- [examples/event-example.md](examples/event-example.md): markup de mensagens globais.
-- [examples/generator-example.md](examples/generator-example.md): sequencia de steps.
-- `examples/runnable/`: smoke tests manuais em navegador.
+Use [examples/component-generators.md](examples/component-generators.md) para criar componentes UI por generator e [examples/ui-components.md](examples/ui-components.md) para compor modal, tabela, métricas e kanban sobre o protocolo de `module.js`.

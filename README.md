@@ -41,7 +41,7 @@ counter.next({ counting: 1 });
 
 O `next()` devolve sempre `{ value: Element, done: false }`. Antes de publicar o proximo root, o componente liga seus handlers; depois, substitui apenas o root que controla.
 
-Veja o contrato completo em [component-contract.md](references/component-contract.md) e o exemplo progressivo em [component-example.md](examples/component-example.md).
+Veja o contrato completo em [component-anatomy.md](references/component-anatomy.md) e os exemplos progressivos em [component-generators.md](examples/component-generators.md).
 
 ## Como usar a skill
 

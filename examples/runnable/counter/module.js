@@ -1,138 +1,56 @@
-function commitComponentElement(component, element) {
-  if (!(element instanceof Element)) {
-    throw new TypeError("next() deve produzir um Element");
-  }
+window.CounterComponents = window.CounterComponents || {};
 
-  element.component = component;
-  component.connect?.(element);
+const CounterComponent = {
+  frontends: window.CounterComponents,
+  events: {},
 
-  if (component.element?.isConnected) {
-    component.element.replaceWith(element);
-  }
+  *frontend(id) {
+    let state = { counting: 0 };
+    const idRef = JSON.stringify(id);
 
-  component.element = element;
+    yield function mount(target = document.body, position = "beforeend") {
+      target.insertAdjacentHTML(position, CounterComponent.frontends[id].next().value);
+    };
 
-  return {
-    value: element,
-    done: false,
-  };
-}
+    yield {
+      addCountingState(number) {
+        const frontend = CounterComponent.frontends[id];
+        const element = document.querySelector(`#${CSS.escape(id)}`);
+        if (!frontend || !element) return;
+        element.outerHTML = frontend.next({ counting: number }).value;
+      },
+      resetCountingState() {
+        const frontend = CounterComponent.frontends[id];
+        const element = document.querySelector(`#${CSS.escape(id)}`);
+        if (!frontend || !element) return;
+        element.outerHTML = frontend.next({ counting: 0 }).value;
+      },
+    };
 
-function CounterComponent({ id, props = {} }) {
-  const initialState = {
-    counting: props.counting ?? 0,
-    label: props.label ?? "Contador",
-  };
+    while (true) {
+      const newState = yield `
+        <section id="${escapeHtmlAttr(id)}">
+          <h2>Contador</h2>
+          <output>${state.counting}</output>
+          <button onclick="${escapeHtmlAttr(`CounterComponent.events[${idRef}].addCountingState(${state.counting + 1})`)}">+1</button>
+          <button onclick="${escapeHtmlAttr(`CounterComponent.events[${idRef}].resetCountingState()`)}">reset</button>
+        </section>`;
+      state = Object.assign(state, newState || {});
+    }
+  },
 
-  return {
-    id,
-    state: { ...initialState },
-    element: null,
+  create(id) {
+    const frontend = this.frontend(id);
+    this.frontends[id] = frontend;
+    const mount = frontend.next().value;
+    this.events[id] = frontend.next().value;
+    return mount;
+  },
+};
 
-    connect(element) {
-      for (const control of element.querySelectorAll("[data-action]")) {
-        control.addEventListener("click", this.handleAction.bind(this));
-      }
-
-      return element;
-    },
-
-    handleAction(event) {
-      const control = event.currentTarget;
-
-      switch (control.dataset.action) {
-        case "add":
-          return this.addCountingState(Number(control.dataset.amount));
-        case "set":
-          return this.setCountingState(Number(control.dataset.value));
-        case "label":
-          return this.changeLabel(control.dataset.label);
-        case "reset":
-          return this.resetState();
-        default:
-          throw new TypeError("Acao local desconhecida");
-      }
-    },
-
-    next(statePatch = {}) {
-      if (
-        statePatch === null ||
-        typeof statePatch !== "object" ||
-        Array.isArray(statePatch)
-      ) {
-        throw new TypeError("CounterComponent recebeu um statePatch invalido");
-      }
-
-      const allowedKeys = new Set(["counting", "label"]);
-
-      for (const key of Object.keys(statePatch)) {
-        if (!allowedKeys.has(key)) {
-          throw new TypeError(`CounterComponent.state.${key} nao existe`);
-        }
-      }
-
-      const nextState = {
-        ...this.state,
-        ...statePatch,
-      };
-
-      if (!Number.isFinite(nextState.counting)) {
-        throw new TypeError("CounterComponent.state.counting deve ser finito");
-      }
-
-      if (typeof nextState.label !== "string") {
-        throw new TypeError("CounterComponent.state.label deve ser string");
-      }
-
-      Object.assign(this.state, statePatch);
-
-      const template = document.createElement("template");
-      template.innerHTML = /*html*/ `
-        <section>
-          <h2 data-slot="label"></h2>
-          <output data-slot="counting"></output>
-          <button type="button" data-action="add" data-amount="1">+1</button>
-          <button type="button" data-action="add" data-amount="10">+10</button>
-          <button type="button" data-action="set" data-value="100">set 100</button>
-          <button type="button" data-action="label" data-label="Estado alterado">
-            mudar label
-          </button>
-          <button type="button" data-action="reset">reset</button>
-        </section>
-      `.trim();
-
-      if (template.content.childElementCount !== 1) {
-        throw new TypeError("CounterComponent deve renderizar um unico root");
-      }
-
-      const element = template.content.firstElementChild;
-      element.id = this.id;
-      element.querySelector("[data-slot='label']").textContent = this.state.label;
-      element.querySelector("[data-slot='counting']").textContent = this.state.counting;
-
-      return commitComponentElement(this, element);
-    },
-
-    addCountingState(number) {
-      return this.next({ counting: this.state.counting + number });
-    },
-
-    setCountingState(number) {
-      return this.next({ counting: number });
-    },
-
-    changeLabel(label) {
-      return this.next({ label });
-    },
-
-    resetState() {
-      return this.next(initialState);
-    },
-  };
-}
-
-const counter = CounterComponent({ id: "counter-1" });
-document.querySelector("#app").append(counter.next().value);
-
-window.counter = counter;
 window.CounterComponent = CounterComponent;
+CounterComponent.create("counter-1")(document.querySelector("#app"));
+
+function escapeHtmlAttr(value) {
+  return String(value).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("'", "&#39;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}

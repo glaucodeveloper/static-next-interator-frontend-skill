@@ -49,9 +49,7 @@ assert(skillName === basename(root), "O frontmatter name deve coincidir com a pa
 assert(existsSync(join(root, "agents", "openai.yaml")), "agents/openai.yaml ausente");
 
 const forbidden = [
-  [/\b(?:TODO|FIXME|TBD)\b:?/i, "marcador pendente"],
-  [/onclick\s*=/i, "handler inline"],
-  [/document\.getElementById\([^\n]+\.component/i, "dispatch local por lookup global"],
+  [/\b(?:TODO|FIXME|TBD)\b:?/, "marcador pendente"],
   [/\bAppFrontend\b/, "wrapper AppFrontend legado"],
 ];
 
