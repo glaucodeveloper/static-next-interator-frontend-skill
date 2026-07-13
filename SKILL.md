@@ -1,92 +1,85 @@
 ---
 name: static-next-interator-frontend-skill
-description: Build, migrate, refactor, or review framework-free JavaScript interfaces made from static component modules that manage instance state through this.frontends, expose per-instance handlers through this.events, render HTML with this.template(id), mount with this.mount(id, target), and rerender with this.update(id, patch) plus outerHTML. Use for React-like component state and UI composition without frameworks, generators, yield, create factories, or returned component objects.
+description: Build, migrate, refactor, or review framework-free JavaScript interfaces whose components are generator functions. Each live component receives state patches through generator.next(patch), creates one HTMLElement from a template fragment, stores methods and state on its this context, exposes itself through element.component, and replaces its own root after updates. Use for React-like local state, inline DOM handlers, progressive UI composition, component typing, or Static Next architecture without frameworks.
 ---
 
 # Static Next Interator Frontend
 
-Use one canonical component anatomy:
+Use one canonical component lifecycle: a `function*`, a live `this` context, and the native generator `next()` protocol.
 
 ```js
-const Component = {
-  frontends: {},
-  events: {},
+function* CounterComponent({ id, props = {} }) {
+  this.id = id;
+  this.state = { counting: props.counting ?? 0 };
+  this.element = null;
 
-  mount(id, target = document.body) {},
-  template(id) {},
-  update(id, patch = {}) {},
-};
-```
+  this.increment = amount => this.next({
+    counting: this.state.counting + amount,
+  });
 
-## Apply the contract
-
-- Store every live instance at `this.frontends[id]`.
-- Store local state inside `this.frontends[id].state`.
-- Register public UI callbacks at `this.events[id]` during `mount()`.
-- Define callbacks as arrow functions when they must retain the component module as `this`.
-- Produce the complete root HTML string with `this.template(id)`.
-- Mount the first string with `insertAdjacentHTML()`.
-- Merge partial state only inside `this.update(id, patch)`.
-- Replace only the owned root with `element.outerHTML = this.template(id)`.
-- Refresh `frontend.element` after replacement.
-- Escape ids and values used in HTML attributes.
-
-Do not introduce generators, `yield`, `create()`, factories returning component objects, DOM commit helpers, or a second lifecycle.
-
-## Implement the lifecycle
-
-```js
-const CounterComponent = {
-  frontends: {},
-  events: {},
-
-  mount(id, target = document.body) {
-    this.frontends[id] = {
-      state: { counting: 0 },
-      element: null,
-    };
-
-    this.events[id] = {
-      add: amount => this.update(id, {
-        counting: this.frontends[id].state.counting + amount,
-      }),
-      reset: () => this.update(id, { counting: 0 }),
-    };
-
-    target.insertAdjacentHTML("beforeend", this.template(id));
-    this.frontends[id].element = document.querySelector(`#${CSS.escape(id)}`);
-  },
-
-  template(id) {
-    const state = this.frontends[id].state;
-    const idRef = JSON.stringify(id);
-
-    return `<section id="${escapeHtmlAttr(id)}">
-      <output>${state.counting}</output>
-      <button onclick="CounterComponent.events[${escapeHtmlAttr(idRef)}].add(1)">+1</button>
-      <button onclick="CounterComponent.events[${escapeHtmlAttr(idRef)}].reset()">reset</button>
+  while (true) {
+    const template = document.createElement("template");
+    template.innerHTML = `<section><output>${this.state.counting}</output>
+      <button onclick="document.getElementById('${id}').component.increment(1)">+1</button>
     </section>`;
-  },
 
-  update(id, patch = {}) {
-    const frontend = this.frontends[id];
-    if (!frontend) throw new TypeError(`frontend desconhecido: ${id}`);
-    validateCounterPatch(patch);
-    Object.assign(frontend.state, patch);
-    frontend.element.outerHTML = this.template(id);
-    frontend.element = document.querySelector(`#${CSS.escape(id)}`);
-    return frontend.element;
-  },
-};
+    Object.assign(
+      this.state,
+      yield (this.element = ((element) => {
+        element.id = id;
+        element.component = this;
+        if (this.element?.isConnected) this.element.replaceWith(element);
+        return element;
+      })(template.content.firstElementChild)),
+    );
+  }
+}
 ```
 
-Read [references/component-anatomy.md](references/component-anatomy.md) for the complete anatomy and [references/events.md](references/events.md) for handler ownership. Use [examples/ui-components.md](examples/ui-components.md) for progressively composed interfaces.
+## Bind the generator
 
-## Validate before publishing
+Create one context per instance and bind the generator iterator to it. Keep the binder generic; do not move component state or rendering into it.
 
-- Confirm two ids keep independent state.
-- Confirm every handler routes through `this.events[id]`.
-- Confirm one action causes one `this.update()` and one root replacement.
-- Confirm `frontend.element` points to the replacement root.
-- Reject unknown patch fields.
+```js
+function component(Component, props) {
+  const context = {};
+  const iterator = Component.call(context, props);
+
+  context.next = iterator.next.bind(iterator);
+  context.return = iterator.return.bind(iterator);
+  context.throw = iterator.throw.bind(iterator);
+
+  return context;
+}
+
+const counter = component(CounterComponent, { id: "counter-1" });
+document.querySelector("#app").append(counter.next().value);
+```
+
+## Preserve the contract
+
+- Keep the component implementation in one `function* Component({ id, props })`.
+- Store instance identity, state, current root, and public handlers on `this`.
+- Use `<template>` and its `DocumentFragment` to parse the render markup.
+- Require exactly one root `HTMLElement`.
+- Apply `id` after extracting the root.
+- Apply `element.component = this` before mounting or replacing it.
+- Keep the canonical state patcher visible as `Object.assign(this.state, yield element)`; the yielded value is the rendered root and the resumed value is the next state patch.
+- Prefer the full expression `Object.assign(this.state, yield (this.element = ...))` when documenting the complete auto-state anatomy.
+- Replace only `this.element` when connected; then refresh `this.element`.
+- Write template handlers as `document.getElementById(id).component.method(...)` when following the inline Static Next form.
+- Validate ids, state patches, and dynamic values before committing DOM.
+
+Do not reinterpret `yield` as an app-step bus, an event registry, or an HTML-string lifecycle. Do not replace the generator with a returned component object or a static module registry.
+
+Read [references/component-anatomy.md](references/component-anatomy.md) before implementing a component, [references/events.md](references/events.md) when defining handlers, and [references/component-contract.md](references/component-contract.md) when formalizing types. Use [examples/ui-components.md](examples/ui-components.md) for the complexity progression.
+
+## Validate
+
+- Confirm the first `next()` returns the initial `HTMLElement`.
+- Confirm `next(patch)` merges state and returns the replacement root.
+- Confirm `element.component === context` after every render.
+- Confirm two ids keep independent contexts and state.
+- Confirm every rendered handler resolves the current root by id.
+- Confirm each component owns one root and one render loop.
 - Run `node scripts/validate.mjs`.

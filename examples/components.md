@@ -1,22 +1,59 @@
-# Component Examples
+# Componentes fundamentais
 
-All examples use the same module contract: `frontends`, `events`, `mount`, `template`, and `update`.
-
-## Counter
+## Binder
 
 ```js
-CounterComponent.mount("counter-1", document.querySelector("#app"));
-CounterComponent.events["counter-1"].add(1);
+function component(Component, props) {
+  const context = {};
+  const iterator = Component.call(context, props);
+  context.next = iterator.next.bind(iterator);
+  context.return = iterator.return.bind(iterator);
+  context.throw = iterator.throw.bind(iterator);
+  return context;
+}
 ```
 
-## Independent instances
+## Contador mínimo
 
 ```js
-CounterComponent.mount("cart-count", document.querySelector("#header"));
-CounterComponent.mount("inventory-count", document.querySelector("#main"));
+function* Counter({ id }) {
+  this.id = id;
+  this.state = { counting: 0 };
+  this.element = null;
+  this.increment = () => this.next({ counting: this.state.counting + 1 });
 
-CounterComponent.events["cart-count"].add(1);
-CounterComponent.events["inventory-count"].add(10);
+  while (true) {
+    const template = document.createElement("template");
+    template.innerHTML = `<button>${this.state.counting}</button>`;
+    Object.assign(
+      this.state,
+      yield (this.element = ((element) => {
+        element.id = id;
+        element.component = this;
+        element.setAttribute(
+          "onclick",
+          `document.getElementById(${JSON.stringify(id)}).component.increment()`,
+        );
+        if (this.element?.isConnected) this.element.replaceWith(element);
+        return element;
+      })(template.content.firstElementChild)),
+    );
+  }
+}
+
+const counter = component(Counter, { id: "counter-1" });
+document.body.append(counter.next().value);
 ```
 
-Each id owns separate state at `CounterComponent.frontends[id].state`.
+## Duas instâncias
+
+```js
+const first = component(Counter, { id: "counter-a" });
+const second = component(Counter, { id: "counter-b" });
+
+document.body.append(first.next().value, second.next().value);
+first.increment();
+
+console.assert(first.state.counting === 1);
+console.assert(second.state.counting === 0);
+```

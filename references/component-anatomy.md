@@ -1,63 +1,144 @@
-# Canonical Component Anatomy
+# Anatomia completa de um componente generator
 
-## State registry
+## Sumário
 
-`this.frontends[id]` is the live instance. It owns state and the current root reference.
+1. Binder mínimo
+2. Generator completo
+3. Sequência de execução
+4. Por que o patch aparece depois do `yield`
+5. Identidade e substituição do root
+6. Inspiração em Effect/Effect-TS
 
-```js
-this.frontends[id] = {
-  state: { counting: 0 },
-  element: null,
-};
-```
+## 1. Binder mínimo
 
-## Handler registry
-
-Create handlers in `mount()`. Arrow functions capture the component module as `this`.
+O generator precisa de um contexto de instância para que `this` seja estável. O binder cria esse contexto, inicia o generator com `Function.prototype.call()` e expõe seus métodos nativos.
 
 ```js
-this.events[id] = {
-  add: amount => this.update(id, {
-    counting: this.frontends[id].state.counting + amount,
-  }),
-};
+function component(Component, props) {
+  const context = {};
+  const iterator = Component.call(context, props);
+
+  context.next = iterator.next.bind(iterator);
+  context.return = iterator.return.bind(iterator);
+  context.throw = iterator.throw.bind(iterator);
+
+  return context;
+}
 ```
 
-The HTML calls the registered handler:
+O binder não guarda estado, não renderiza e não interpreta eventos. Toda a anatomia continua dentro da única `function*` do componente.
+
+## 2. Generator completo
 
 ```js
-const idRef = JSON.stringify(id);
-return `<button onclick="CounterComponent.events[${idRef}].add(1)">+1</button>`;
+function* CounterComponent({ id, props = {} }) {
+  if (!id) throw new TypeError("CounterComponent requer id");
+
+  const initialState = {
+    counting: props.counting ?? 0,
+    label: props.label ?? "Contador",
+  };
+
+  this.id = id;
+  this.state = { ...initialState };
+  this.element = null;
+
+  this.increment = amount => this.next({
+    counting: this.state.counting + amount,
+  });
+
+  this.setCounting = counting => this.next({ counting });
+  this.rename = label => this.next({ label });
+  this.reset = () => this.next(initialState);
+
+  while (true) {
+    const template = document.createElement("template");
+
+    template.innerHTML = /* html */ `
+      <section>
+        <p data-slot="label"></p>
+        <output data-slot="counting"></output>
+        <button onclick="document.getElementById('${id}').component.increment(1)">+1</button>
+        <button onclick="document.getElementById('${id}').component.increment(10)">+10</button>
+        <button onclick="document.getElementById('${id}').component.reset()">reset</button>
+      </section>
+    `.trim();
+
+    if (template.content.childElementCount !== 1) {
+      throw new TypeError("CounterComponent deve produzir um único root");
+    }
+
+    Object.assign(
+      this.state,
+      yield (this.element = ((element) => {
+        if (!(element instanceof HTMLElement)) {
+          throw new TypeError("CounterComponent deve produzir HTMLElement");
+        }
+
+        element.id = this.id;
+        element.querySelector("[data-slot='label']").textContent = this.state.label;
+        element.querySelector("[data-slot='counting']").textContent = this.state.counting;
+        element.component = this;
+
+        if (this.element?.isConnected) {
+          this.element.replaceWith(element);
+        }
+
+        return element;
+      })(template.content.firstElementChild)),
+    );
+  }
+}
 ```
 
-## Template
+## 3. Sequência de execução
 
-`this.template(id)` is a pure read of the registered instance. It returns the full root HTML string.
+1. `component(CounterComponent, props)` cria `context` e o iterator nativo.
+2. `context.next()` inicia o corpo da `function*`.
+3. O generator inicializa `this.state`, `this.element` e os métodos públicos.
+4. `<template>` parseia o markup em um `DocumentFragment` em `template.content`.
+5. O único `HTMLElement` é extraído do fragmento.
+6. O root recebe `id` e `element.component = this`.
+7. Na primeira renderização não há root conectado para substituir.
+8. `yield element` devolve `{ value: element, done: false }`.
+9. O chamador anexa `value` ao DOM.
+10. Um handler recupera a instância pelo id e chama, por exemplo, `component.increment(1)`.
+11. O método calcula um patch e chama `this.next(patch)`.
+12. O patch se torna o resultado da expressão `yield (...)` suspensa.
+13. A chamada externa de `Object.assign(this.state, ...)` recebe esse patch e o mescla automaticamente.
+14. A próxima volta cria outro fragmento e outro root.
+15. O root conectado é substituído, `this.element` é atualizado e o novo root é entregue pelo próximo `yield`.
 
-## Mount
+## 4. A direção dupla do `yield`
 
-`this.mount(id, target)` registers state and handlers, inserts the first template, then stores the root element.
-
-## Update
-
-`this.update(id, patch)` is the only state transition:
-
-```js
-Object.assign(frontend.state, patch);
-frontend.element.outerHTML = this.template(id);
-frontend.element = document.querySelector(`#${CSS.escape(id)}`);
+```text
+Object.assign(
+  this.state,
+  yield (this.element = buildCurrentElement()),
+);
 ```
 
-This is the React-like cycle:
+Essa única linha possui duas direções:
 
-`handler -> this.update(id, patch) -> state merge -> this.template(id) -> outerHTML -> refreshed element reference`
+- Saída: `yield element` entrega o `HTMLElement` ao chamador de `next()`.
+- Entrada: o argumento da chamada seguinte, `next(patch)`, vira o valor da expressão suspensa e é entregue diretamente ao `Object.assign`.
 
-## Required invariants
+Por isso o `yield` é a fronteira do auto-state: entrega o `HTMLElement` atual e recebe o patch que o `Object.assign` aplica antes da próxima volta do loop.
 
-- No generators or `yield`.
-- No `create()` bootstrap.
-- No returned component instance object.
-- No DOM mutation outside `mount()` and `update()`.
-- One stable id per instance.
-- One root element per template.
-- One handler registry per instance.
+## 5. Identidade do root
+
+`element.component = this` transforma o root em ponte para a instância viva. Como cada render cria outro elemento, a referência deve ser reaplicada antes de `replaceWith()`. O handler sempre consulta `document.getElementById(id)` e, portanto, encontra o root atual, nunca o anterior desconectado.
+
+## 6. Inspiração em Effect/Effect-TS
+
+A influência é a separação entre descrição e execução de um programa: a `function*` descreve um ciclo suspensível e o binder o interpreta por meio de `next`, `throw` e `return`. O valor entregue pelo generator é explícito, assim como o valor usado para retomá-lo.
+
+Static Next especializa essa ideia para componentes DOM:
+
+- o programa é o ciclo de renderização do componente;
+- o valor produzido é um `HTMLElement`;
+- o valor de retomada é um `StatePatch`;
+- o contexto `this` é a instância viva;
+- o root atual é a superfície pública que aponta para essa instância.
+
+Não importe Effect para implementar esse contrato. A referência é filosófica; o runtime do componente permanece JavaScript e DOM nativos.

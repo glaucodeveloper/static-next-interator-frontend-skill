@@ -1,27 +1,33 @@
-# Progressive UI Components
+# Galeria progressiva de componentes UI
 
-## Level 1: Counter
+Todos os níveis mantêm o mesmo ciclo: `function*`, métodos em `this`, fragmento de template, root com `id`, `element.component = this`, substituição localizada e patch recebido por `yield`.
 
-State: one number. Handlers: add and reset. Template: output and buttons.
+## Nível 1 — Contador
 
-## Level 2: Expandable card
+Estado numérico, métodos `increment`, `decrement` e `reset`, e um root com três handlers.
 
-State: `{ open, title }`. Handlers call `this.update(id, { open })`. The template conditionally includes the body.
+## Nível 2 — Disclosure acessível
 
-## Level 3: Validated form
+Estado booleano, `aria-expanded`, conteúdo condicional e método `toggle`.
 
-State: `{ values, errors, submitting }`. Each field handler clones `values`, updates one key, and delegates to `this.update()`.
+## Nível 3 — Formulário validado
 
-## Level 4: Filtered table
+Estado aninhado de valores, touched e errors; handlers de campo e submit produzem patches explícitos.
 
-State: `{ query, sort, rows }`. `template(id)` derives visible rows without storing a duplicate filtered list.
+## Nível 4 — Tabela pesquisável e ordenável
 
-## Level 5: Modal workflow
+Estado de query, sort e rows; o render deriva as linhas visíveis sem duplicar dados no DOM.
 
-State: `{ open, pending, error }`. Handlers open, cancel, confirm, and delegate every visual transition to `this.update()`.
+## Nível 5 — Carrinho de compras
 
-## Level 6: Kanban board
+Itens aninhados, quantidades, cupom e totais derivados; os métodos atualizam coleções imutavelmente antes de `next(patch)`.
 
-The board owns `{ columns, selectedCardId }`. Per-instance handlers calculate moves and call one update. The template renders all columns from the new state.
+## Nível 6 — Kanban composto
 
-For every level, retain the same anatomy. Complexity belongs in state validation and template composition, never in a second lifecycle.
+Colunas, cartões, filtro, seleção e movimentação; um único componente pode demonstrar estado estrutural, embora a produção deva extrair subcomponentes quando eles precisarem de ciclos independentes.
+
+## Nível 7 — Workspace assíncrono
+
+Estados `idle`, `pending`, `success` e `error`; métodos assíncronos usam múltiplos `next(patch)` e preservam a mesma instância/root identity.
+
+Os códigos completos e demonstrações interativas estão em `docs/index.html`, selecionáveis na galeria da GitHub Page.

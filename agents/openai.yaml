@@ -1,4 +1,4 @@
 interface:
   display_name: "Static Next Interator Frontend"
-  short_description: "Build static this-driven UI components"
-  default_prompt: "Use $static-next-interator-frontend-skill to build a framework-free UI with this.frontends, this.events, templates, and localized updates."
+  short_description: "Build generator-driven vanilla UI components"
+  default_prompt: "Use $static-next-interator-frontend-skill to build a framework-free UI where function* components render HTMLElements, receive state through next(patch), and expose methods through element.component."
