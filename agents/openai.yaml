@@ -1,4 +1,4 @@
 interface:
   display_name: "Static Next Interator Frontend"
-  short_description: "Build safe live vanilla-JS components"
-  default_prompt: "Use $static-next-interator-frontend-skill to build a framework-free frontend with bound local events and self-owned DOM updates."
+  short_description: "Build static this-driven UI components"
+  default_prompt: "Use $static-next-interator-frontend-skill to build a framework-free UI with this.frontends, this.events, templates, and localized updates."

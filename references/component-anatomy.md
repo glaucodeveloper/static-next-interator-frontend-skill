@@ -1,55 +1,63 @@
-# Anatomia do componente generator
+# Canonical Component Anatomy
 
-Este é o contrato canônico. Use-o como um componente React-like sem framework: estado fechado no generator, template como render e patch como próxima entrada.
+## State registry
+
+`this.frontends[id]` is the live instance. It owns state and the current root reference.
 
 ```js
-const CounterComponent = {
-  frontends: window.CounterComponents,
-  events: {},
-
-  *frontend(id) {
-    let state = { counting: 0 };
-    const idRef = JSON.stringify(id);
-
-    yield function mount(target = document.body, position = "beforeend") {
-      target.insertAdjacentHTML(position, CounterComponent.frontends[id].next().value);
-    };
-
-    yield {
-      addCountingState(number) {
-        const frontend = CounterComponent.frontends[id];
-        const element = document.querySelector(`#${CSS.escape(id)}`);
-        if (frontend && element) element.outerHTML = frontend.next({ counting: number }).value;
-      },
-    };
-
-    while (true) {
-      const patch = yield `<div id="${id}">
-        <output>${state.counting}</output>
-        <button onclick="CounterComponent.events[${idRef}].addCountingState(${state.counting + 1})">+1</button>
-      </div>`;
-      state = Object.assign(state, patch || {});
-    }
-  },
-
-  create(id) {
-    const frontend = this.frontend(id);
-    this.frontends[id] = frontend;
-    const mount = frontend.next().value;
-    this.events[id] = frontend.next().value;
-    return mount;
-  },
+this.frontends[id] = {
+  state: { counting: 0 },
+  element: null,
 };
 ```
 
-## Leitura por etapas
+## Handler registry
 
-1. `frontends[id]` guarda a instância persistente do generator.
-2. `events[id]` contém handlers seguros para o id daquela instância.
-3. `state` fica fechado dentro de `*frontend(id)`.
-4. O primeiro `yield` entrega uma função `mount`.
-5. O segundo `yield` entrega handlers que avançam o generator.
-6. Cada volta do loop devolve um template HTML com o estado atual.
-7. `frontend.next(patch)` pausa no próximo `yield` e injeta o patch em `patch`.
-8. `Object.assign` transforma o patch no próximo estado.
-9. O handler troca somente o elemento atual com `outerHTML` e a string produzida pelo generator.
+Create handlers in `mount()`. Arrow functions capture the component module as `this`.
+
+```js
+this.events[id] = {
+  add: amount => this.update(id, {
+    counting: this.frontends[id].state.counting + amount,
+  }),
+};
+```
+
+The HTML calls the registered handler:
+
+```js
+const idRef = JSON.stringify(id);
+return `<button onclick="CounterComponent.events[${idRef}].add(1)">+1</button>`;
+```
+
+## Template
+
+`this.template(id)` is a pure read of the registered instance. It returns the full root HTML string.
+
+## Mount
+
+`this.mount(id, target)` registers state and handlers, inserts the first template, then stores the root element.
+
+## Update
+
+`this.update(id, patch)` is the only state transition:
+
+```js
+Object.assign(frontend.state, patch);
+frontend.element.outerHTML = this.template(id);
+frontend.element = document.querySelector(`#${CSS.escape(id)}`);
+```
+
+This is the React-like cycle:
+
+`handler -> this.update(id, patch) -> state merge -> this.template(id) -> outerHTML -> refreshed element reference`
+
+## Required invariants
+
+- No generators or `yield`.
+- No `create()` bootstrap.
+- No returned component instance object.
+- No DOM mutation outside `mount()` and `update()`.
+- One stable id per instance.
+- One root element per template.
+- One handler registry per instance.

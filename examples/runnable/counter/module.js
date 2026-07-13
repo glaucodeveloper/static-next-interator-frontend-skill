@@ -1,56 +1,55 @@
-window.CounterComponents = window.CounterComponents || {};
-
 const CounterComponent = {
-  frontends: window.CounterComponents,
+  frontends: {},
   events: {},
 
-  *frontend(id) {
-    let state = { counting: 0 };
-    const idRef = JSON.stringify(id);
-
-    yield function mount(target = document.body, position = "beforeend") {
-      target.insertAdjacentHTML(position, CounterComponent.frontends[id].next().value);
+  mount(id, target = document.body) {
+    this.frontends[id] = { state: { counting: 0 }, element: null };
+    this.events[id] = {
+      add: amount => this.update(id, {
+        counting: this.frontends[id].state.counting + amount,
+      }),
+      reset: () => this.update(id, { counting: 0 }),
     };
-
-    yield {
-      addCountingState(number) {
-        const frontend = CounterComponent.frontends[id];
-        const element = document.querySelector(`#${CSS.escape(id)}`);
-        if (!frontend || !element) return;
-        element.outerHTML = frontend.next({ counting: number }).value;
-      },
-      resetCountingState() {
-        const frontend = CounterComponent.frontends[id];
-        const element = document.querySelector(`#${CSS.escape(id)}`);
-        if (!frontend || !element) return;
-        element.outerHTML = frontend.next({ counting: 0 }).value;
-      },
-    };
-
-    while (true) {
-      const newState = yield `
-        <section id="${escapeHtmlAttr(id)}">
-          <h2>Contador</h2>
-          <output>${state.counting}</output>
-          <button onclick="${escapeHtmlAttr(`CounterComponent.events[${idRef}].addCountingState(${state.counting + 1})`)}">+1</button>
-          <button onclick="${escapeHtmlAttr(`CounterComponent.events[${idRef}].resetCountingState()`)}">reset</button>
-        </section>`;
-      state = Object.assign(state, newState || {});
-    }
+    target.insertAdjacentHTML("beforeend", this.template(id));
+    this.frontends[id].element = document.querySelector(`#${CSS.escape(id)}`);
   },
 
-  create(id) {
-    const frontend = this.frontend(id);
-    this.frontends[id] = frontend;
-    const mount = frontend.next().value;
-    this.events[id] = frontend.next().value;
-    return mount;
+  template(id) {
+    const { counting } = this.frontends[id].state;
+    const idRef = escapeHtmlAttr(JSON.stringify(id));
+    return `<section id="${escapeHtmlAttr(id)}">
+      <h2>Contador</h2>
+      <output>${counting}</output>
+      <button onclick="CounterComponent.events[${idRef}].add(1)">+1</button>
+      <button onclick="CounterComponent.events[${idRef}].add(10)">+10</button>
+      <button onclick="CounterComponent.events[${idRef}].reset()">reset</button>
+    </section>`;
+  },
+
+  update(id, patch = {}) {
+    const frontend = this.frontends[id];
+    if (!frontend) throw new TypeError(`frontend desconhecido: ${id}`);
+    if (Object.keys(patch).some(key => key !== "counting")) {
+      throw new TypeError("patch desconhecido");
+    }
+    if (!Number.isFinite(patch.counting ?? frontend.state.counting)) {
+      throw new TypeError("counting deve ser finito");
+    }
+    Object.assign(frontend.state, patch);
+    frontend.element.outerHTML = this.template(id);
+    frontend.element = document.querySelector(`#${CSS.escape(id)}`);
+    return frontend.element;
   },
 };
 
 window.CounterComponent = CounterComponent;
-CounterComponent.create("counter-1")(document.querySelector("#app"));
+CounterComponent.mount("counter-1", document.querySelector("#app"));
 
 function escapeHtmlAttr(value) {
-  return String(value).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("'", "&#39;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
 }

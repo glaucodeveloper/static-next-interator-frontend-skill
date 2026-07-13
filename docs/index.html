@@ -3,793 +3,104 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Galeria de componentes UI por generators persistentes, templates HTML, eventos registrados e atualização por outerHTML.">
-  <meta name="theme-color" content="#0f172a">
-  <title>Static Next Interator Frontend</title>
+  <meta name="description" content="Componentes UI React-like em JavaScript puro com this, template, handlers e atualização por outerHTML.">
+  <meta name="theme-color" content="#0b1220">
+  <title>Static Next — Anatomia de componentes</title>
   <style>
-    :root {
-      --bg: #0f172a;
-      --surface: #172033;
-      --surface-strong: #1e293b;
-      --text: #f8fafc;
-      --muted: #b6c2d3;
-      --border: #475569;
-      --accent: #22c55e;
-      --accent-strong: #86efac;
-      --focus: #facc15;
-      --code: #d9e6f7;
-      --shadow: 0 18px 45px rgb(0 0 0 / 22%);
-    }
-
-    * { box-sizing: border-box; }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      min-width: 320px;
-      margin: 0;
-      background:
-        radial-gradient(circle at 78% 0%, rgb(34 197 94 / 12%), transparent 26rem),
-        var(--bg);
-      color: var(--text);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      font-size: 16px;
-      line-height: 1.6;
-    }
-
-    a { color: inherit; }
-
-    a:focus-visible, summary:focus-visible {
-      outline: 3px solid var(--focus);
-      outline-offset: 4px;
-    }
-
-    .skip-link {
-      position: fixed;
-      z-index: 5;
-      top: 1rem;
-      left: 1rem;
-      padding: .7rem 1rem;
-      background: var(--focus);
-      color: #111827;
-      font-weight: 700;
-      transform: translateY(-160%);
-    }
-
-    .skip-link:focus { transform: translateY(0); }
-
-    .shell { width: min(1120px, calc(100% - 2.5rem)); margin-inline: auto; }
-
-    .site-header {
-      position: sticky;
-      z-index: 2;
-      top: 0;
-      border-bottom: 1px solid rgb(71 85 105 / 75%);
-      background: rgb(15 23 42 / 93%);
-      backdrop-filter: blur(12px);
-    }
-
-    .nav { display: flex; align-items: center; justify-content: space-between; min-height: 4.5rem; gap: 1rem; }
-
-    .brand { display: inline-flex; align-items: center; gap: .75rem; text-decoration: none; font-weight: 750; letter-spacing: -.02em; }
-
-    .brand-mark {
-      display: grid;
-      width: 1.75rem;
-      height: 1.75rem;
-      place-items: center;
-      border: 1px solid var(--accent);
-      border-radius: .42rem;
-      color: var(--accent-strong);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: .85rem;
-    }
-
-    nav ul { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .2rem .9rem; padding: 0; margin: 0; list-style: none; }
-    nav a { color: var(--muted); font-size: .9rem; text-decoration: none; }
-    nav a:hover { color: var(--text); }
-
-    .hero { padding: clamp(4rem, 12vw, 8.5rem) 0 4.5rem; }
-    .eyebrow { margin: 0 0 1rem; color: var(--accent-strong); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-    h1, h2, h3 { line-height: 1.15; letter-spacing: -.035em; }
-    h1 { max-width: 14ch; margin: 0; font-size: clamp(2.7rem, 7vw, 5.7rem); }
-    h2 { margin: 0 0 1rem; font-size: clamp(1.7rem, 3.8vw, 2.65rem); }
-    h3 { margin: 0 0 .6rem; font-size: 1.16rem; }
-    .lede { max-width: 62ch; margin: 1.5rem 0 0; color: var(--muted); font-size: clamp(1.08rem, 2vw, 1.3rem); }
-    .actions { display: flex; flex-wrap: wrap; gap: .8rem; margin-top: 2rem; }
-
-    .button {
-      display: inline-flex;
-      min-height: 2.75rem;
-      align-items: center;
-      justify-content: center;
-      padding: .55rem 1rem;
-      border: 1px solid var(--border);
-      border-radius: .45rem;
-      color: var(--text);
-      font-weight: 700;
-      text-decoration: none;
-      transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
-    }
-
-    .button:hover { border-color: var(--accent); transform: translateY(-1px); }
-    .button.primary { border-color: var(--accent); background: var(--accent); color: #06240f; }
-    .button.primary:hover { background: var(--accent-strong); }
-
-    .signal { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 4.5rem; overflow: hidden; border: 1px solid var(--border); border-radius: .65rem; background: var(--border); box-shadow: var(--shadow); }
-    .signal div { min-height: 7rem; padding: 1.2rem; background: var(--surface); }
-    .signal strong { display: block; color: var(--accent-strong); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1.6rem; }
-    .signal span { color: var(--muted); font-size: .9rem; }
-
-    section { padding: 5.2rem 0; border-top: 1px solid rgb(71 85 105 / 62%); }
-    .section-intro { max-width: 62ch; margin: 0 0 2rem; color: var(--muted); }
-    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
-    .card { min-height: 100%; padding: 1.4rem; border: 1px solid var(--border); border-radius: .65rem; background: linear-gradient(145deg, rgb(30 41 59 / 90%), rgb(23 32 51 / 90%)); }
-    .card p, .card li { color: var(--muted); }
-    .card p { margin: 0; }
-
-    .split { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: clamp(1.5rem, 5vw, 5rem); align-items: start; }
-    .checklist { display: grid; gap: .9rem; padding: 0; margin: 0; list-style: none; }
-    .checklist li { position: relative; padding-left: 1.7rem; color: var(--muted); }
-    .checklist li::before { position: absolute; left: 0; color: var(--accent); content: "✓"; font-weight: 800; }
-
-    pre { overflow-x: auto; margin: 0; padding: 1.25rem; border: 1px solid var(--border); border-radius: .65rem; background: #09111f; color: var(--code); box-shadow: var(--shadow); }
-    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: .9em; }
-    .inline-code { color: var(--accent-strong); }
-
-    .doc-list { display: grid; gap: .7rem; padding: 0; margin: 0; list-style: none; }
-    .doc-list a { display: flex; justify-content: space-between; gap: 1rem; padding: .85rem 0; border-bottom: 1px solid rgb(71 85 105 / 62%); color: var(--text); text-decoration: none; }
-    .doc-list a:hover { color: var(--accent-strong); }
-    .doc-list span { color: var(--muted); }
-
-    details { border: 1px solid var(--border); border-radius: .55rem; background: var(--surface); }
-    details + details { margin-top: .75rem; }
-    summary { padding: 1rem 1.15rem; cursor: pointer; font-weight: 700; }
-    details p { padding: 0 1.15rem 1rem; margin: 0; color: var(--muted); }
-
-    .callout { padding: clamp(1.4rem, 4vw, 2.5rem); border: 1px solid var(--accent); border-radius: .7rem; background: linear-gradient(120deg, rgb(34 197 94 / 14%), rgb(30 41 59 / 80%)); }
-    .callout p { max-width: 62ch; margin: .6rem 0 0; color: var(--muted); }
-
-    .demo-layout { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 1rem; }
-    .demo-stage { padding: 1.4rem; border: 1px solid var(--border); border-radius: .65rem; background: var(--surface); }
-    .demo-stage > * + * { margin-top: 1rem; }
-    .demo-label { margin: 0; color: var(--accent-strong); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
-    .demo-controls { display: flex; flex-wrap: wrap; gap: .65rem; }
-    .demo-controls button { min-height: 2.75rem; padding: .5rem .85rem; border: 1px solid var(--border); border-radius: .4rem; background: var(--surface-strong); color: var(--text); cursor: pointer; font: inherit; font-weight: 700; }
-    .demo-controls button:hover { border-color: var(--accent); color: var(--accent-strong); }
-    .demo-output { display: grid; min-height: 8rem; place-items: center; border: 1px dashed var(--border); border-radius: .45rem; background: #09111f; }
-    .demo-output output { color: var(--accent-strong); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 2.5rem; font-weight: 800; }
-    .trace { min-height: 4rem; padding: .85rem; border-left: 3px solid var(--accent); background: rgb(9 17 31 / 75%); color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .84rem; }
-    .flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; gap: .6rem; margin: 1.5rem 0 0; }
-    .flow span { min-height: 4.5rem; display: grid; place-items: center; padding: .5rem; border: 1px solid var(--border); border-radius: .45rem; color: var(--muted); font-size: .85rem; text-align: center; }
-    .flow b { color: var(--accent); font-size: 1.2rem; text-align: center; }
-    #cenarios-avancados { display: none; }
-    #legacy-event-model { display: none; }
-    .example-picker { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: end; max-width: 46rem; margin: 0 0 1.5rem; }
-    .example-picker label { display: grid; gap: .45rem; color: var(--muted); font-size: .9rem; font-weight: 700; }
-    .example-picker select { min-height: 2.8rem; padding: .55rem .75rem; border: 1px solid var(--border); border-radius: .45rem; background: #09111f; color: var(--text); font: inherit; }
-    .preview-chip { padding: .6rem .75rem; border: 1px solid var(--accent); border-radius: .45rem; color: var(--accent-strong); font: .78rem ui-monospace, monospace; white-space: nowrap; }
-    .ui-preview { width: 100%; padding: .85rem; color: #dce7f7; font-size: .76rem; text-align: left; }
-    .ui-top, .ui-row { display: flex; justify-content: space-between; gap: .5rem; padding: .45rem 0; border-bottom: 1px solid #26364f; }
-    .ui-kpis, .ui-columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; margin: .65rem 0; }
-    .ui-kpis span, .ui-card { padding: .5rem; border: 1px solid #314460; border-radius: .25rem; background: #111d30; }
-    .ui-columns { grid-template-columns: repeat(3, 1fr); }
-    .ui-column { min-height: 5.4rem; padding: .35rem; border: 1px solid #314460; border-radius: .25rem; color: #95a9c7; }
-    .ui-column b { display: block; margin-bottom: .35rem; color: #dce7f7; font-size: .68rem; }
-
-    footer { padding: 2rem 0 3rem; color: var(--muted); font-size: .9rem; }
-    footer p { margin: 0; }
-
-    @media (max-width: 720px) {
-      .shell { width: min(100% - 2rem, 1120px); }
-      .nav { align-items: flex-start; padding: .85rem 0; }
-      nav ul { justify-content: flex-start; }
-      .signal, .grid, .split, .demo-layout { grid-template-columns: 1fr; }
-      .flow { grid-template-columns: 1fr; }
-      .flow b { transform: rotate(90deg); }
-      .signal div { min-height: auto; }
-      section { padding: 3.6rem 0; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      html { scroll-behavior: auto; }
-      .button { transition: none; }
-      .button:hover { transform: none; }
-    }
+    :root { --bg:#0b1220; --panel:#121d31; --code:#08101d; --line:#3c4d68; --text:#f5f8fc; --muted:#b8c4d8; --accent:#42e58d; --focus:#ffd84d; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; background:radial-gradient(circle at 80% 0,#123725 0,transparent 25rem),var(--bg); color:var(--text); font:16px/1.65 Inter,system-ui,sans-serif; }
+    a { color:inherit; } a:focus-visible,button:focus-visible,select:focus-visible { outline:3px solid var(--focus); outline-offset:3px; }
+    .shell { width:min(1120px,calc(100% - 2rem)); margin:auto; }
+    header { position:sticky; top:0; z-index:4; border-bottom:1px solid var(--line); background:#0b1220ed; backdrop-filter:blur(12px); }
+    nav { min-height:4.4rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+    nav ul { display:flex; gap:1rem; list-style:none; margin:0; padding:0; } nav a { text-decoration:none; color:var(--muted); } nav a:hover { color:var(--accent); }
+    .brand { font-weight:800; color:var(--text); }
+    main section { padding:5rem 0; border-bottom:1px solid var(--line); }
+    .hero { padding:7rem 0 5rem; }
+    .eyebrow { color:var(--accent); font:700 .8rem ui-monospace,monospace; letter-spacing:.09em; text-transform:uppercase; }
+    h1,h2,h3 { line-height:1.15; letter-spacing:-.035em; } h1 { max-width:14ch; font-size:clamp(2.7rem,7vw,5.4rem); margin:.7rem 0; } h2 { font-size:clamp(1.9rem,4vw,3rem); margin:.5rem 0 1rem; } h3 { margin:.2rem 0 .6rem; }
+    .lede,.intro { max-width:68ch; color:var(--muted); font-size:1.12rem; }
+    .cycle { display:grid; grid-template-columns:repeat(9,auto); align-items:center; gap:.45rem; margin:2rem 0; overflow-x:auto; }
+    .cycle span { min-width:7rem; padding:.8rem; border:1px solid var(--line); border-radius:.4rem; background:var(--panel); text-align:center; font-size:.82rem; } .cycle b { color:var(--accent); }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; } .grid.three { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .card,details,.stage { border:1px solid var(--line); border-radius:.65rem; background:var(--panel); }
+    .card { padding:1.3rem; } .card p,details p { color:var(--muted); }
+    details { margin-top:.75rem; } summary { padding:1rem 1.2rem; cursor:pointer; font-weight:750; } details > p { padding:0 1.2rem; } details pre { border:0; border-top:1px solid var(--line); border-radius:0 0 .65rem .65rem; }
+    pre { margin:0; padding:1.15rem; overflow:auto; border:1px solid var(--line); border-radius:.55rem; background:var(--code); color:#dce7f7; }
+    code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.88em; }
+    .picker { display:grid; grid-template-columns:1fr auto; gap:1rem; align-items:end; margin:1.5rem 0; } label { display:grid; gap:.45rem; color:var(--muted); font-weight:700; }
+    select { min-height:3rem; padding:.6rem .8rem; border:1px solid var(--line); border-radius:.45rem; background:var(--code); color:var(--text); font:inherit; }
+    .badge { padding:.65rem .85rem; border:1px solid var(--accent); border-radius:.45rem; color:var(--accent); font:700 .78rem ui-monospace,monospace; }
+    .stage { padding:1.25rem; } .preview { min-height:15rem; padding:1rem; border:1px dashed var(--line); border-radius:.45rem; background:var(--code); }
+    .ui-row { display:flex; justify-content:space-between; gap:1rem; padding:.55rem 0; border-bottom:1px solid #263650; } .ui-kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:.5rem; margin:1rem 0; } .ui-kpis span { padding:.7rem; background:#13223a; border:1px solid #31445f; border-radius:.35rem; }
+    .trace { margin-top:1rem; padding:.8rem; border-left:3px solid var(--accent); background:var(--code); color:var(--muted); font: .84rem ui-monospace,monospace; }
+    footer { padding:2rem 0; color:var(--muted); }
+    @media(max-width:760px){ nav { align-items:flex-start; padding:.8rem 0; } nav ul { flex-wrap:wrap; justify-content:flex-end; } .grid,.grid.three,.picker { grid-template-columns:1fr; } .cycle { grid-template-columns:1fr; } .cycle b { transform:rotate(90deg); text-align:center; } main section { padding:3.5rem 0; } }
+    @media(prefers-reduced-motion:reduce){ html { scroll-behavior:auto; } }
   </style>
 </head>
 <body>
-  <a class="skip-link" href="#content">Ir para o conteudo principal</a>
-  <header class="site-header">
-    <div class="shell nav">
-      <a class="brand" href="#top" aria-label="Static Next Interator Frontend, inicio">
-        <span class="brand-mark" aria-hidden="true">&gt;_</span>
-        <span>Static Next</span>
-      </a>
-      <nav aria-label="Navegacao principal">
-        <ul>
-          <li><a href="#contrato">Contrato</a></li>
-          <li><a href="#anatomia">Anatomia</a></li>
-          <li><a href="#demonstracoes">Demonstrações</a></li>
-          <li><a href="#documentacao">Documentacao</a></li>
-          <li><a href="#contribuir">Contribuir</a></li>
-          <li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">GitHub</a></li>
-        </ul>
-      </nav>
-    </div>
-  </header>
+  <header><nav class="shell"><a class="brand" href="#inicio">Static Next</a><ul><li><a href="#anatomia">Anatomia</a></li><li><a href="#handlers">Handlers</a></li><li><a href="#galeria">Galeria</a></li><li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">GitHub</a></li></ul></nav></header>
+  <main>
+    <div id="inicio" class="shell hero"><p class="eyebrow">JavaScript puro · estado por instância · rerender localizado</p><h1>Um componente inteiro, explicado por dentro.</h1><p class="lede">Static Next usa módulos estáticos com <code>this.frontends</code>, <code>this.events</code>, <code>this.template()</code> e <code>this.update()</code>. Sem generators, factories ou ciclos paralelos.</p></div>
 
-  <main id="content">
-    <div id="top" class="shell hero">
-      <p class="eyebrow">Vanilla JavaScript · DOM nativo · contrato explicito</p>
-      <h1>Seu DOM, com um contrato que continua legivel.</h1>
-      <p class="lede">Uma skill para construir interfaces sem framework em que cada componente controla seu proprio root, seus eventos locais e suas atualizacoes — sem transformar o navegador em detalhe de implementacao.</p>
-      <div class="actions">
-        <a class="button primary" href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">Ver no GitHub</a>
-        <a class="button" href="#documentacao">Explorar a documentacao</a>
-      </div>
-      <div class="signal" aria-label="Principios da skill">
-        <div><strong>next()</strong><span>atualiza somente o componente responsavel</span></div>
-        <div><strong>template</strong><span>materializa um unico root por renderizacao</span></div>
-        <div><strong>runtime</strong><span>valida dados sem exigir TypeScript</span></div>
-      </div>
-    </div>
-
-    <section id="contrato">
-      <div class="shell split">
-        <div>
-          <p class="eyebrow">O contrato central</p>
-          <h2>Pequeno o bastante para auditar. Forte o bastante para orientar.</h2>
-          <p class="section-intro">Um componente e um objeto vivo, nao uma string HTML nem um iterator ECMAScript completo. Ele expoe <code class="inline-code">id</code>, <code class="inline-code">element</code> e <code class="inline-code">next(input)</code>; estado local e opcional.</p>
-          <ul class="checklist">
-            <li>Cria um novo root por atualizacao, usando <code>&lt;template&gt;</code>.</li>
-            <li>Conecta handlers antes de publicar o novo elemento.</li>
-            <li>Preserva ownership: eventos locais ficam no componente; mensagens globais seguem ao Interator.</li>
-            <li>Retorna <code>{ value: Element, done: false }</code> em cada ciclo.</li>
-          </ul>
-        </div>
-        <pre aria-label="Exemplo de uso do componente"><code>const counter = CounterComponent({
-  id: "counter",
-  props: { counting: 0 },
-});
-
-document.querySelector("#app")
-  .append(counter.next().value);
-
-counter.next({ counting: 1 });</code></pre>
-      </div>
-    </section>
-
-    <section id="anatomia">
-      <div class="shell split">
-        <div>
-          <p class="eyebrow">Anatomia canônica</p>
-          <h2>Um generator é a instância viva do componente.</h2>
-          <p class="section-intro">Este é o ciclo React-like do módulo original: o generator fecha o estado, devolve montagem e eventos, renderiza HTML e recebe o patch da próxima atualização.</p>
-          <ol class="checklist">
-            <li><code>create(id)</code> registra o generator em <code>frontends[id]</code>.</li>
-            <li>O primeiro <code>yield</code> devolve <code>mount</code>.</li>
-            <li>O segundo expõe <code>events[id]</code>.</li>
-            <li>O loop devolve o template HTML com o estado atual.</li>
-            <li>O handler chama <code>frontend.next(patch)</code> e aplica a string por <code>outerHTML</code>.</li>
-          </ol>
-        </div>
-        <pre><code>const frontend = Component.frontend(id);
-Component.frontends[id] = frontend;
-
-const mount = frontend.next().value;
-Component.events[id] = frontend.next().value;
-
-mount(document.body);
-
-// dentro do handler
-element.outerHTML = frontend.next({
-  counting: nextValue,
-}).value;
-
-// dentro de *frontend(id)
-while (true) {
-  const patch = yield `&lt;div id="${id}"&gt;...&lt;/div&gt;`;
-  state = Object.assign(state, patch || {});
-}</code></pre>
-      </div>
-      <div class="shell" style="margin-top: 2rem">
-        <details open>
-          <summary>1. Namespace e registro da instância</summary>
-          <p><code>window.CounterComponents</code> conserva todos os generators por id. <code>frontends[id]</code> é a instância persistente; <code>events[id]</code> é a superfície pública chamada pelo template.</p>
-          <pre><code>window.CounterComponents = window.CounterComponents || {};
-
-const CounterComponent = {
-  frontends: window.CounterComponents,
+    <section id="anatomia"><div class="shell"><p class="eyebrow">Primeira leitura</p><h2>Anatomia canônica completa</h2><p class="intro">O contador abaixo é o componente mínimo completo. As interfaces mais complexas repetem exatamente esta estrutura.</p>
+      <div class="cycle"><span>onclick</span><b>→</b><span>events[id]</span><b>→</b><span>this.update</span><b>→</b><span>this.template</span><b>→</b><span>outerHTML</span></div>
+      <details open><summary>1. Registries: instâncias e handlers</summary><p><code>frontends[id]</code> contém estado e root atual. <code>events[id]</code> contém as ações públicas daquela instância.</p><pre><code>const CounterComponent = {
+  frontends: {},
   events: {},
-};</code></pre>
-        </details>
-        <details>
-          <summary>2. Generator, estado fechado e mount</summary>
-          <p>O generator preserva <code>state</code> entre renders. O primeiro yield retorna a função que pede o primeiro template e o insere no alvo.</p>
-          <pre><code>*frontend(id) {
-  let state = { counting: 0 };
-
-  yield function mount(target = document.body, position = "beforeend") {
-    const frontend = CounterComponent.frontends[id];
-    target.insertAdjacentHTML(position, frontend.next().value);
-  };</code></pre>
-        </details>
-        <details>
-          <summary>3. Handlers: template → events[id] → next(patch)</summary>
-          <p>O segundo yield expõe handlers. Eles localizam o root atual, avançam o generator com o patch e substituem somente esse root.</p>
-          <pre><code>yield {
-  addCountingState(number) {
-    const frontend = CounterComponent.frontends[id];
-    const element = document.querySelector(`#${CSS.escape(id)}`);
-    if (!frontend || !element) return;
-    element.outerHTML = frontend.next({ counting: number }).value;
-  },
-};</code></pre>
-        </details>
-        <details>
-          <summary>4. Template e auto-update do estado</summary>
-          <p>O loop produz a string HTML. Quando o handler chama <code>next(patch)</code>, o patch entra em <code>newState</code>; depois o generator atualiza <code>state</code> e no próximo avanço produz HTML novo.</p>
-          <pre><code>while (true) {
-  const newState = yield `&lt;div id="${id}"&gt;
-    &lt;span&gt;${state.counting}&lt;/span&gt;
-    &lt;button onclick="CounterComponent.events[id].addCountingState(${state.counting + 1})"&gt;
-      click!
-    &lt;/button&gt;
-  &lt;/div&gt;`;
-
-  state = Object.assign(state, newState || {});
-}</code></pre>
-        </details>
-        <details>
-          <summary>5. create(id): bootstrap completo</summary>
-          <p><code>create</code> avança os dois yields iniciais, armazena mount e handlers e devolve a montagem pronta para o consumidor.</p>
-          <pre><code>create(id) {
-  const frontend = this.frontend(id);
-  this.frontends[id] = frontend;
-  const mount = frontend.next().value;
-  this.events[id] = frontend.next().value;
-  return mount;
-}
-
-CounterComponent.create("counter-1")(document.body);</code></pre>
-        </details>
-      </div>
-    </section>
-
-    <section>
-      <div class="shell">
-        <p class="eyebrow">Por que existe</p>
-        <h2>Sem handlers inline. Sem estado escondido. Sem render global acidental.</h2>
-        <p class="section-intro">Frontends pequenos tendem a acumular interpolacao insegura, listeners que se perdem e mudancas diretas no documento. A skill oferece limites praticos para manter JavaScript puro compreensivel ao longo do tempo.</p>
-        <div class="grid">
-          <article class="card">
-            <h3>Generators de componentes</h3>
-            <p>Cada instância mantém seu generator, templates HTML e handlers registrados por id.</p>
-          </article>
-          <article class="card">
-            <h3>Eventos com ownership</h3>
-            <p>Acoes locais religam seus listeners a cada root; rota, sessao e sincronizacao se tornam mensagens explicitas.</p>
-          </article>
-          <article class="card">
-            <h3>Tipos em runtime</h3>
-            <p>Validadores estritos formalizam patches, modelos e resultados de <code>next()</code> em JavaScript puro.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section id="demonstracoes">
-      <div class="shell">
-        <p class="eyebrow">Demonstrações guiadas</p>
-        <h2>Do contador ao painel composto, sempre no mesmo generator.</h2>
-        <p class="section-intro">Selecione um nível. Cada demonstração expõe o generator persistente, o template HTML, o mapa de eventos e o patch que retorna ao loop para produzir a próxima interface.</p>
-        <div class="example-picker">
-          <label for="ui-example">Escolha uma interface complexa
-            <select id="ui-example">
-              <option value="counter">Nível 1 — contador clássico</option>
-              <option value="checkout">Nível 2 — checkout com estado composto</option>
-              <option value="crm">Nível 3 — CRM com pipeline e eventos</option>
-              <option value="kanban">Nível 4 — kanban com componentes coordenados</option>
-              <option value="analytics">Nível 5 — analytics com dados derivados</option>
-              <option value="inbox">Nível 6 — inbox com seleção e painel</option>
-            </select>
-          </label>
-          <span class="preview-chip">UI gallery · 6 cenários</span>
-        </div>
-        <div class="flow" aria-label="Fluxo do handler">
-          <span>onclick no template</span><b aria-hidden="true">→</b><span>events[id].handler()</span><b aria-hidden="true">→</b><span>frontend.next(patch) + outerHTML</span>
-        </div>
-
-        <div class="demo-layout">
-          <article class="demo-stage">
-            <p id="gallery-label" class="demo-label">01 · checkout</p>
-            <h3 id="gallery-title">Checkout com estado local</h3>
-            <p id="gallery-description">Campos, validação, resumo do pedido e confirmação ocupam o mesmo componente sem misturar eventos brutos no estado.</p>
-            <div id="gallery-preview" class="demo-output" aria-live="polite"></div>
-            <p id="gallery-trace" class="trace" aria-live="polite">Selecione um cenário para trocar apenas este preview e seu código.</p>
-          </article>
-          <pre aria-label="Generator e handler demonstrados"><code id="gallery-code">function* CheckoutTemplate({ id, props = {} }) {
-  let state = { email: "", payment: null, ...props };
-  while (true) {
-    const template = document.createElement("template");
-    template.innerHTML = "&lt;section data-checkout&gt;&lt;/section&gt;";
-    const statePatch = yield template.content.firstElementChild;
-    state = { ...state, ...statePatch };
-  }
-}</code></pre>
-          <pre aria-label="Handler canônico"><code>events[id] = {
-  update(patch) {
-    const frontend = frontends[id];
-    const element = document.querySelector(`#${CSS.escape(id)}`);
-    if (frontend && element) {
-      element.outerHTML = frontend.next(patch).value;
-    }
-  },
-};</code></pre>
-        </div>
-
-        <div class="flow" aria-label="Fluxo de atualização do componente">
-          <span>ação local</span><b aria-hidden="true">→</b><span>statePatch</span><b aria-hidden="true">→</b><span>novo root + commit</span>
-        </div>
-      </div>
-    </section>
-
-    <section id="legacy-event-model">
-      <div class="shell grid">
-        <article class="card">
-          <p class="demo-label">02 · evento local</p>
-          <h3>O DOM não entra no estado</h3>
-          <p>O listener lê <code>event.currentTarget</code>, calcula um patch pequeno e chama uma função do próprio componente. O objeto <code>Event</code> nunca é mesclado em <code>state</code>.</p>
-          <pre><code>handleAdd(event) {
-  const amount = Number(event.currentTarget.dataset.amount);
-  return this.next({
-    counting: this.state.counting + amount,
-  });
-}</code></pre>
-        </article>
-        <article class="card">
-          <p class="demo-label">03 · mensagem global</p>
-          <h3>O Interator decide o alcance</h3>
-          <p>Rota, sessão e sincronização pertencem ao app. A delegação normaliza a intenção e só então solicita a atualização da região afetada.</p>
-          <pre><code>const message = {
-  type: target.dataset.message,
-  route: target.dataset.route,
-};
-
-const result = interator.dispatch(message);
-if (result.changed.includes("route")) {
-  renderRoute(root, interator, children);
-}</code></pre>
-        </article>
-        <article class="card">
-          <p class="demo-label">04 · driver gerador</p>
-          <h3>Composição não toma o ciclo</h3>
-          <p>A função <code>frontend()</code> apenas ordena steps. O driver cria as instâncias, monta a primeira renderização e mantém o estado local dentro do componente.</p>
-          <pre><code>function runApp(frontend, executeStep) {
-  const app = frontend();
-  let cursor = app.next();
-
-  while (!cursor.done) {
-    cursor = app.next(executeStep(cursor.value));
-  }
-}</code></pre>
-        </article>
-      </div>
-    </section>
-
-    <section>
-      <div class="shell split">
-        <div>
-          <p class="eyebrow">Contrato de runtime</p>
-          <h2>Falhe cedo quando um patch não pertence ao componente.</h2>
-          <p class="section-intro">A validação não substitui uma tipagem estática quando o projeto precisa dela. Ela protege as fronteiras que JavaScript puro deixa abertas: campos extras, números inválidos, ausência de dados obrigatórios e resultados fora do protocolo.</p>
-        </div>
-        <pre aria-label="Exemplo de validação de patch"><code>const allowedKeys = new Set(["counting", "label"]);
-
-for (const key of Object.keys(statePatch)) {
-  if (!allowedKeys.has(key)) {
-    throw new TypeError(`state.${key} não existe`);
-  }
-}
-
-if (!Number.isFinite(nextState.counting)) {
-  throw new TypeError("counting deve ser finito");
-}</code></pre>
-      </div>
-    </section>
-
-    <section id="cenarios-avancados">
-      <div class="shell">
-        <p class="eyebrow">Laboratório de cenários</p>
-        <h2>Nove exemplos para situações que aparecem em aplicações reais.</h2>
-        <p class="section-intro">Abra cada cenário para ver o contrato em contexto. Os exemplos são deliberadamente explícitos: deixam claro quem possui o estado, quem recebe a mensagem e onde o teardown acontece.</p>
-
-        <details>
-          <summary>01 · Formulário controlado com validação incremental</summary>
-          <p>O componente aceita somente patches conhecidos. A validação acontece antes do commit e o texto entra no DOM por propriedades, não por interpolação.</p>
-          <pre><code>next(statePatch = {}) {
-  const allowed = new Set(["email", "touched", "error"]);
-  if (Object.keys(statePatch).some(key =&gt; !allowed.has(key))) {
-    throw new TypeError("patch de formulário desconhecido");
-  }
-
-  const nextState = { ...this.state, ...statePatch };
-  if (typeof nextState.email !== "string") {
-    throw new TypeError("email deve ser string");
-  }
-
-  Object.assign(this.state, statePatch);
-  const element = renderForm();
-  element.querySelector("input").value = this.state.email;
-  element.querySelector("[data-error]").textContent = this.state.error;
-  return commitComponentElement(this, element);
-}</code></pre>
-        </details>
-
-        <details>
-          <summary>02 · Lista filtrável com estado derivado</summary>
-          <p>O estado guarda a consulta e os itens fonte. A lista filtrada é derivada durante a renderização; não há uma segunda fonte de verdade.</p>
-          <pre><code>next({ query = this.state.query } = {}) {
-  if (typeof query !== "string") throw new TypeError("query inválida");
-  this.state.query = query;
-
-  const visible = this.state.items.filter(item =&gt;
-    item.name.toLocaleLowerCase().includes(query.toLocaleLowerCase())
-  );
-  const element = renderListShell();
-  const list = element.querySelector("[data-list]");
-  for (const item of visible) {
-    const row = document.createElement("li");
-    row.textContent = item.name;
-    list.append(row);
-  }
-  return commitComponentElement(this, element);
-}</code></pre>
-        </details>
-
-        <details>
-          <summary>03 · Preservação explícita de foco após replaceWith()</summary>
-          <p>Substituir o root remove o foco. Quando a experiência depende dele, capture a intenção antes do commit e restaure-a depois de publicar o novo root.</p>
-          <pre><code>const activeSlot = this.element?.contains(document.activeElement)
-  ? document.activeElement.dataset.slot
-  : null;
-
-const result = commitComponentElement(this, element);
-
-if (activeSlot) {
-  result.value.querySelector(`[data-slot="${activeSlot}"]`)?.focus();
-}
-
-return result;</code></pre>
-        </details>
-
-        <details>
-          <summary>04 · Busca assíncrona com cancelamento e dispose()</summary>
-          <p>Requests não pertencem a <code>connect()</code>. O componente mantém o controller como recurso próprio e o encerra quando for descartado definitivamente.</p>
-          <pre><code>async search(term) {
-  this.request?.abort();
-  this.request = new AbortController();
-  this.next({ status: "loading", term });
-
-  const response = await fetch(`/api/search?q=${encodeURIComponent(term)}`, {
-    signal: this.request.signal,
-  });
-  const items = await response.json();
-  return this.next({ status: "ready", items });
-},
-
-dispose() {
-  this.request?.abort();
-  this.request = null;
-}</code></pre>
-        </details>
-
-        <details>
-          <summary>05 · Subscription externa com ownership e teardown</summary>
-          <p>Listeners de <code>window</code>, <code>document</code>, timers e subscriptions ficam fora do ciclo de renderização. A instância possui uma operação de início e outra de descarte.</p>
-          <pre><code>start() {
-  if (this.unsubscribe) return;
-  this.unsubscribe = sessionStore.subscribe(snapshot =&gt; {
-    this.next({ user: snapshot.user });
-  });
-},
-
-dispose() {
-  this.unsubscribe?.();
-  this.unsubscribe = null;
-}</code></pre>
-        </details>
-
-        <details>
-          <summary>06 · Rota global e atualização apenas do outlet</summary>
-          <p>O root do app delega a intenção. O Interator devolve quais átomos mudaram, e o driver atualiza a região correspondente sem remontar o app inteiro.</p>
-          <pre><code>root.addEventListener("click", event =&gt; {
-  const target = event.target.closest("[data-route]");
-  if (!target || !root.contains(target)) return;
-
-  const result = interator.dispatch({
-    type: "navigate",
-    route: target.dataset.route,
-  });
-
-  if (result.changed.includes("route")) {
-    renderRoute(outlet, children, result.snapshot.route);
-  }
-});</code></pre>
-        </details>
-
-        <details>
-          <summary>07 · Mutação otimista com rollback explícito</summary>
-          <p>O componente pode exibir uma intenção pendente, mas a confirmação remota precisa ter caminho de sucesso e falha claro; nenhum erro é silenciosamente absorvido.</p>
-          <pre><code>async toggleFavorite(id) {
-  const previous = this.state.favorites;
-  const favorites = toggle(previous, id);
-  this.next({ favorites, pendingId: id, error: "" });
-
-  try {
-    await api.saveFavorites(favorites);
-    return this.next({ pendingId: null });
-  } catch (error) {
-    return this.next({
-      favorites: previous,
-      pendingId: null,
-      error: "Não foi possível salvar. Tente novamente.",
-    });
-  }
-}</code></pre>
-        </details>
-
-        <details>
-          <summary>08 · Componente read-only com input de renderização</summary>
-          <p>Um componente sem estado local ainda é vivo porque preserva <code>element</code>. Ele recebe dados de renderização, publica seu root e compartilha o mesmo commit.</p>
-          <pre><code>function StatusBadge({ id }) {
-  return {
-    id,
-    element: null,
-    next({ label = "", tone = "neutral" } = {}) {
-      const template = document.createElement("template");
-      template.innerHTML = "&lt;span data-label&gt;&lt;/span&gt;";
-      const element = template.content.firstElementChild;
-      element.id = this.id;
-      element.dataset.tone = tone;
-      element.querySelector("[data-label]").textContent = label;
-      return commitComponentElement(this, element);
-    },
+};</code></pre></details>
+      <details><summary>2. mount(): cria a instância e captura this</summary><p>As arrows preservam o <code>this</code> do módulo. Todo handler calcula um patch e chama <code>this.update()</code>.</p><pre><code>mount(id, target = document.body) {
+  this.frontends[id] = { state: { counting: 0 }, element: null };
+  this.events[id] = {
+    add: amount => this.update(id, {
+      counting: this.frontends[id].state.counting + amount,
+    }),
+    reset: () => this.update(id, { counting: 0 }),
   };
-}</code></pre>
-        </details>
+  target.insertAdjacentHTML("beforeend", this.template(id));
+  this.frontends[id].element = document.querySelector(`#${CSS.escape(id)}`);
+}</code></pre></details>
+      <details><summary>3. template(): render derivado do estado</summary><p>O template lê a instância registrada e devolve um único root. O HTML chama o handler pelo registry público.</p><pre><code>template(id) {
+  const { counting } = this.frontends[id].state;
+  const idRef = JSON.stringify(id);
+  return `&lt;section id="${id}"&gt;
+    &lt;output&gt;${counting}&lt;/output&gt;
+    &lt;button onclick="CounterComponent.events[${idRef}].add(1)"&gt;+1&lt;/button&gt;
+    &lt;button onclick="CounterComponent.events[${idRef}].reset()"&gt;reset&lt;/button&gt;
+  &lt;/section&gt;`;
+}</code></pre></details>
+      <details><summary>4. update(): auto state e rerender</summary><p>Esta é a única transição: valida, mescla, gera o próximo HTML, substitui o root e atualiza a referência.</p><pre><code>update(id, patch = {}) {
+  const frontend = this.frontends[id];
+  validatePatch(patch);
+  Object.assign(frontend.state, patch);
+  frontend.element.outerHTML = this.template(id);
+  frontend.element = document.querySelector(`#${CSS.escape(id)}`);
+  return frontend.element;
+}</code></pre></details>
+    </div></section>
 
-        <details>
-          <summary>09 · Modelos estritos para dados recebidos</summary>
-          <p>Contratos de runtime são úteis nas bordas: payloads de API, definições de rota e mensagens. Campos extras e números não finitos devem falhar antes de alcançarem a UI.</p>
-          <pre><code>const Route = define("Route", {
-  name: Type.string,
-  path: Type.string,
-  authenticated: Type.boolean,
-});
+    <section id="handlers"><div class="shell"><p class="eyebrow">Ponto crítico</p><h2>Handlers possuem uma responsabilidade só</h2><div class="grid three"><article class="card"><h3>Capturar intenção</h3><p>O template escolhe a ação e seus argumentos.</p><pre><code>onclick="Component.events[id].add(1)"</code></pre></article><article class="card"><h3>Calcular patch</h3><p>A arrow lê o estado atual usando <code>this</code>.</p><pre><code>add: amount => this.update(id, {
+  counting: this.frontends[id].state.counting + amount,
+})</code></pre></article><article class="card"><h3>Delegar update</h3><p>O handler não substitui HTML nem mescla estado por conta própria.</p><pre><code>this.update(id, patch)</code></pre></article></div></div></section>
 
-const route = new Route({
-  name: "favorites",
-  path: "/favorites",
-  authenticated: true,
-});
-
-route.extra = "não permitido"; // lança TypeError</code></pre>
-        </details>
-      </div>
-    </section>
-
-    <section id="documentacao">
-      <div class="shell split">
-        <div>
-          <p class="eyebrow">Mapa de leitura</p>
-          <h2>Da primeira renderizacao ao contrato completo.</h2>
-          <p class="section-intro">A documentacao separa o ciclo do componente, os eventos, a composicao do app e os contratos de runtime. Leia apenas a camada que resolve seu problema atual.</p>
-        </div>
-        <ul class="doc-list">
-          <li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill/blob/main/SKILL.md">Contrato e limites <span>SKILL.md →</span></a></li>
-          <li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill/blob/main/references/component-contract.md">Componentes stateful e stateless <span>referencia →</span></a></li>
-          <li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill/blob/main/references/events.md">Eventos locais e globais <span>referencia →</span></a></li>
-          <li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill/blob/main/references/program-generation.md">Funcao geradora frontend() <span>referencia →</span></a></li>
-          <li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill/tree/main/examples">Exemplos executaveis <span>examples/ →</span></a></li>
-        </ul>
-      </div>
-    </section>
-
-    <section>
-      <div class="shell">
-        <p class="eyebrow">Escolha consciente</p>
-        <h2>Uma alternativa a um framework completo, nao uma imitacao dele.</h2>
-        <details>
-          <summary>Quando faz sentido usar?</summary>
-          <p>Ferramentas internas, paginas interativas, prototipos duraveis e migracoes graduais de JavaScript legado que pedem DOM nativo e atualizacoes localizadas.</p>
-        </details>
-        <details>
-          <summary>O que a skill nao promete?</summary>
-          <p>Ela nao promete compatibilidade com o protocolo Iterator e nao esconde efeitos globais dentro de <code>next()</code>. Timers, subscriptions e listeners de <code>window</code> ou <code>document</code> exigem ownership e <code>dispose()</code> explicitos.</p>
-        </details>
-      </div>
-    </section>
-
-    <section id="contribuir">
-      <div class="shell callout">
-        <p class="eyebrow">Comunidade</p>
-        <h2>Traga casos reais. Fortaleca o contrato.</h2>
-        <p>Contribuicoes de exemplos, migracoes e validacoes sao bem-vindas quando preservam a ownership do componente e deixam o ciclo mais verificavel. Antes de enviar uma mudanca, execute <code>node scripts/validate.mjs</code>.</p>
-        <div class="actions">
-          <a class="button primary" href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">Abrir o repositorio</a>
-          <a class="button" href="community-announcement.md">Usar o anuncio da comunidade</a>
-        </div>
-      </div>
-    </section>
+    <section id="galeria"><div class="shell"><p class="eyebrow">Progressão prática</p><h2>Galeria de componentes por complexidade</h2><p class="intro">Cada opção preserva a mesma anatomia. Mudam apenas o shape do estado, os handlers e a composição do template.</p><div class="picker"><label for="example">Escolha um nível<select id="example"><option value="counter">Nível 1 — Contador</option><option value="card">Nível 2 — Card expansível</option><option value="form">Nível 3 — Formulário validado</option><option value="table">Nível 4 — Tabela filtrável</option><option value="modal">Nível 5 — Modal assíncrono</option><option value="kanban">Nível 6 — Kanban</option></select></label><span class="badge">6 componentes · 1 contrato</span></div><div class="grid"><article class="stage"><p id="example-level" class="eyebrow"></p><h3 id="example-title"></h3><p id="example-copy" class="intro"></p><div id="preview" class="preview"></div><p id="trace" class="trace"></p></article><pre><code id="example-code"></code></pre></div></div></section>
   </main>
-
-  <footer>
-    <div class="shell"><p>Static Next Interator Frontend · JavaScript sem framework, com limites explicitos.</p></div>
-  </footer>
+  <footer><div class="shell">Static Next · componentes React-like sem framework.</div></footer>
   <script>
-    (() => {
-      const select = document.querySelector("#ui-example");
-      const preview = document.querySelector("#gallery-preview");
-      const label = document.querySelector("#gallery-label");
-      const title = document.querySelector("#gallery-title");
-      const description = document.querySelector("#gallery-description");
-      const code = document.querySelector("#gallery-code");
-      const trace = document.querySelector("#gallery-trace");
-      const examples = {
-        counter: {
-          title: "Contador clássico: estado, eventos e commit", label: "00 · componente base completo",
-          description: "O exemplo de referência para a skill: cada ação local produz um patch validado, cria um novo root e reconecta os handlers antes do commit.",
-          markup: `<div class="ui-preview"><div class="ui-top"><b>Contador</b><span>stateful</span></div><div class="ui-kpis"><span>counting<br><b>42</b></span><span>label<br><b>Pedidos</b></span><span>status<br><b>ativo</b></span></div><div class="ui-row"><span>+1 · +10 · set 100 · reset</span><b>ações locais</b></div></div>`,
-          code: `function* CounterTemplate({ id, props = {} }) {\n  let state = { counting: props.counting ?? 0, label: props.label ?? "Contador" };\n  while (true) {\n    const template = document.createElement("template");\n    template.innerHTML = \`<section id="\${id}"><h2></h2><output></output>\n      <button data-action="add" data-amount="1">+1</button>\n      <button data-action="reset">reset</button></section>\`;\n    const element = template.content.firstElementChild;\n    element.querySelector("h2").textContent = state.label;\n    element.querySelector("output").textContent = state.counting;\n    const statePatch = yield element;\n    state = { ...state, ...validateCounterPatch(statePatch) };\n  }\n}`
-        },
-        checkout: {
-          title: "Checkout com validação e resumo", label: "01 · checkout stateful",
-          description: "Endereço, pagamento, cupom e totais derivam de um único statePatch validado.",
-          markup: `<div class="ui-preview"><div class="ui-top"><b>Checkout</b><span>Pedido #1042</span></div><div class="ui-row"><span>Endereço de entrega</span><b>Completo</b></div><div class="ui-row"><span>Cartão final 4242</span><b>Editar</b></div><div class="ui-row"><span>Total</span><b>R$ 248,90</b></div></div>`,
-          code: `function* CheckoutTemplate({ id, props = {} }) {\n  let state = { address: "", payment: null, coupon: "", ...props };\n  while (true) {\n    const template = document.createElement("template");\n    template.innerHTML = \`<section id="\${id}" data-checkout><form></form><aside></aside></section>\`;\n    const element = template.content.firstElementChild;\n    fillCheckout(element, state);\n    const statePatch = yield element;\n    state = { ...state, ...validateCheckoutPatch(statePatch) };\n  }\n}`
-        },
-        crm: {
-          title: "CRM com pipeline e leads", label: "02 · CRM composto",
-          description: "Filtros locais atualizam a tabela; mudanças de estágio são mensagens globais coordenadas pelo Interator.",
-          markup: `<div class="ui-preview"><div class="ui-top"><b>Pipeline comercial</b><span>12 leads</span></div><div class="ui-kpis"><span>R$ 84k<br>pipeline</span><span>7<br>propostas</span><span>3<br>ganhos</span></div><div class="ui-row"><b>Ana Lima</b><span>Qualificação · R$ 12k</span></div><div class="ui-row"><b>Studio Norte</b><span>Proposta · R$ 24k</span></div></div>`,
-          code: `function* LeadTableTemplate({ id, props, interator }) {\n  let state = { query: "", leads: props.leads };\n  while (true) {\n    const element = renderLeadTableFromTemplate(id, state);\n    bindLeadFilter(element, query => element.component.next({ query }));\n    const patch = yield element;\n    if (patch.type === "lead/move") interator.dispatch(patch);\n    else state = { ...state, ...patch };\n  }\n}`
-        },
-        kanban: {
-          title: "Kanban com cartões e colunas", label: "03 · kanban com composição",
-          description: "Cada coluna é uma instância. O board recebe a intenção de mover um cartão e atualiza somente as colunas afetadas.",
-          markup: `<div class="ui-preview"><div class="ui-top"><b>Sprint 24</b><span>8 tarefas</span></div><div class="ui-columns"><div class="ui-column"><b>Backlog</b><div class="ui-card">Pesquisa</div></div><div class="ui-column"><b>Em curso</b><div class="ui-card">Checkout</div></div><div class="ui-column"><b>Feito</b><div class="ui-card">Tokens</div></div></div></div>`,
-          code: `function* BoardTemplate({ id, props, interator }) {\n  let columns = props.columns;\n  while (true) {\n    const element = renderBoardTemplate(id, columns);\n    const message = yield element;\n    if (message.type === "card/move") {\n      columns = interator.dispatch(message).snapshot.columns;\n    }\n  }\n}`
-        },
-        analytics: {
-          title: "Analytics com filtros e métricas", label: "04 · analytics derivado",
-          description: "O filtro de período é estado local; métricas e séries são dados derivados recebidos do Interator.",
-          markup: `<div class="ui-preview"><div class="ui-top"><b>Visão geral</b><span>Últimos 30 dias</span></div><div class="ui-kpis"><span>42.8k<br>visitas</span><span>6.4%<br>conversão</span><span>R$ 18.2k<br>receita</span></div><div class="ui-row"><span>Tráfego orgânico</span><b>+18.4%</b></div></div>`,
-          code: `function* AnalyticsTemplate({ id, props = {} }) {\n  let state = { period: "30d", ...props };\n  while (true) {\n    const snapshot = analyticsStore.forPeriod(state.period);\n    const element = renderAnalyticsTemplate(id, snapshot);\n    const patch = yield element;\n    state = { ...state, ...validatePeriodPatch(patch) };\n  }\n}`
-        },
-        inbox: {
-          title: "Inbox com seleção e leitura", label: "05 · inbox com foco",
-          description: "A lista preserva a mensagem selecionada e o painel de leitura é atualizado sem remontar a caixa inteira.",
-          markup: `<div class="ui-preview"><div class="ui-top"><b>Inbox</b><span>3 não lidas</span></div><div class="ui-row"><b>Projeto Aurora</b><span>Revisão aprovada</span></div><div class="ui-row"><b>Equipe de produto</b><span>Agenda da sprint</span></div><div class="ui-row"><b>Financeiro</b><span>Fatura disponível</span></div></div>`,
-          code: `function* InboxTemplate({ id, props = {} }) {\n  let state = { selectedId: null, messages: props.messages };\n  while (true) {\n    const element = renderInboxTemplate(id, state);\n    preserveFocusedMessage(element, state.selectedId);\n    const patch = yield element;\n    state = { ...state, ...validateInboxPatch(patch) };\n  }\n}`
-        },
-      };
-      function renderExample() {
-        const example = examples[select.value];
-        label.textContent = example.label;
-        title.textContent = example.title;
-        description.textContent = example.description;
-        preview.replaceChildren();
-        const template = document.createElement("template");
-        template.innerHTML = example.markup;
-        preview.append(template.content.firstElementChild);
-        code.textContent = example.code;
-        trace.textContent = `Galeria: ${example.title}. O seletor troca apenas o preview e o trecho de implementação.`;
-      }
-      select.addEventListener("change", renderExample);
-      renderExample();
-    })();
+    const examples = {
+      counter:{level:"Nível 1",title:"Contador",copy:"Uma propriedade de estado e dois handlers.",preview:`<div class="ui-row"><b>Contador</b><strong>42</strong></div><div class="ui-row"><span>add(1)</span><span>reset()</span></div>`,code:`const Counter = {\n  frontends: {}, events: {},\n  mount(id, target) {\n    this.frontends[id] = { state: { counting: 0 }, element: null };\n    this.events[id] = {\n      add: n => this.update(id, { counting: this.frontends[id].state.counting + n }),\n      reset: () => this.update(id, { counting: 0 }),\n    };\n    target.insertAdjacentHTML("beforeend", this.template(id));\n  },\n  template(id) { /* output + buttons */ },\n  update(id, patch) { /* merge + outerHTML */ },\n};`},
+      card:{level:"Nível 2",title:"Card expansível",copy:"Estado booleano controla uma região condicional.",preview:`<div class="ui-row"><b>Detalhes do pedido</b><span>aberto</span></div><p>Endereço, pagamento e entrega.</p>`,code:`this.frontends[id] = { state: { open: false, title }, element: null };\nthis.events[id] = { toggle: () => this.update(id, { open: !this.frontends[id].state.open }) };\n\ntemplate(id) {\n  const { open, title } = this.frontends[id].state;\n  return \`<article id="\${id}"><button onclick="Card.events[\${JSON.stringify(id)}].toggle()">\${title}</button>\${open ? "<p>Conteúdo</p>" : ""}</article>\`;\n}`},
+      form:{level:"Nível 3",title:"Formulário validado",copy:"Handlers atualizam campos e erros sem criar outro lifecycle.",preview:`<div class="ui-row"><span>E-mail</span><b>válido</b></div><div class="ui-row"><span>Empresa</span><b>preenchida</b></div><div class="ui-row"><span>Enviar</span><b>pronto</b></div>`,code:`this.events[id] = {\n  change: (field, value) => {\n    const values = { ...this.frontends[id].state.values, [field]: value };\n    this.update(id, { values, errors: validate(values) });\n  },\n  submit: () => this.update(id, { submitting: true }),\n};`},
+      table:{level:"Nível 4",title:"Tabela filtrável",copy:"O template deriva linhas visíveis a partir de query, sort e rows.",preview:`<div class="ui-row"><b>Ana Lima</b><span>Ativa</span></div><div class="ui-row"><b>Studio Norte</b><span>Lead</span></div><div class="ui-row"><b>Grupo Solar</b><span>Ativa</span></div>`,code:`this.events[id] = {\n  filter: query => this.update(id, { query }),\n  sort: key => this.update(id, { sort: key }),\n};\n\ntemplate(id) {\n  const state = this.frontends[id].state;\n  const visible = deriveRows(state.rows, state.query, state.sort);\n  return renderTableHtml(id, visible);\n}`},
+      modal:{level:"Nível 5",title:"Modal assíncrono",copy:"Open, pending e error descrevem todo o workflow visual.",preview:`<div class="ui-row"><b>Excluir registro?</b><span>modal aberto</span></div><p>Cancelar · Confirmar exclusão</p>`,code:`this.events[id] = {\n  open: () => this.update(id, { open: true, error: "" }),\n  cancel: () => this.update(id, { open: false }),\n  confirm: async () => {\n    this.update(id, { pending: true });\n    try { await remove(); this.update(id, { open: false, pending: false }); }\n    catch { this.update(id, { pending: false, error: "Falha ao excluir" }); }\n  },\n};`},
+      kanban:{level:"Nível 6",title:"Kanban composto",copy:"Um estado estrutural coordena colunas, cartões e seleção.",preview:`<div class="ui-kpis"><span><b>Backlog</b><br>Pesquisa</span><span><b>Em curso</b><br>Checkout</span><span><b>Feito</b><br>Tokens</span></div>`,code:`this.events[id] = {\n  select: cardId => this.update(id, { selectedCardId: cardId }),\n  move: (cardId, toColumn) => {\n    const columns = moveCard(this.frontends[id].state.columns, cardId, toColumn);\n    this.update(id, { columns });\n  },\n};\n\ntemplate(id) { return renderBoardHtml(id, this.frontends[id].state); }`},
+    };
+    const select=document.querySelector("#example"), level=document.querySelector("#example-level"), title=document.querySelector("#example-title"), copy=document.querySelector("#example-copy"), preview=document.querySelector("#preview"), code=document.querySelector("#example-code"), trace=document.querySelector("#trace");
+    function renderExample(){ const item=examples[select.value]; level.textContent=item.level; title.textContent=item.title; copy.textContent=item.copy; preview.innerHTML=item.preview; code.textContent=item.code; trace.textContent="handler → this.update(id, patch) → template → outerHTML"; }
+    select.addEventListener("change",renderExample); renderExample();
   </script>
 </body>
 </html>

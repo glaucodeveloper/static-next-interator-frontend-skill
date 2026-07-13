@@ -1,36 +1,27 @@
-# Catálogo de UI
+# Progressive UI Components
 
-Use generators independentes para cada parte da tela e registre cada instância pelo seu `id`.
+## Level 1: Counter
 
-## Modal de confirmação
+State: one number. Handlers: add and reset. Template: output and buttons.
 
-```js
-const mountDelete = ConfirmDialog.create("delete-user", {
-  title: "Excluir usuário",
-});
-mountDelete(document.body);
-```
+## Level 2: Expandable card
 
-O handler `open()` avança o generator com `{ open: true }`; `cancel()` o avança com `{ open: false }`; `confirm()` pode chamar a ação de domínio e então fechar o modal.
+State: `{ open, title }`. Handlers call `this.update(id, { open })`. The template conditionally includes the body.
 
-## Tabela com filtro
+## Level 3: Validated form
 
-```js
-const mountTable = UsersTable.create("users-table", { users });
-mountTable(document.querySelector("#content"));
-```
+State: `{ values, errors, submitting }`. Each field handler clones `values`, updates one key, and delegates to `this.update()`.
 
-O template contém um input com `oninput`. O handler recebe o termo, chama `frontend.next({ query })` e troca somente `#users-table` com `outerHTML`.
+## Level 4: Filtered table
 
-## Painel de métricas
+State: `{ query, sort, rows }`. `template(id)` derives visible rows without storing a duplicate filtered list.
 
-```js
-const mountDashboard = MetricsDashboard.create("dashboard", { period: "30d" });
-mountDashboard(document.querySelector("#content"));
-```
+## Level 5: Modal workflow
 
-Cada botão de período chama `events[id].setPeriod("7d")`. O generator recebe o patch, recompõe as métricas e devolve o HTML do painel atualizado.
+State: `{ open, pending, error }`. Handlers open, cancel, confirm, and delegate every visual transition to `this.update()`.
 
-## Kanban
+## Level 6: Kanban board
 
-Crie `KanbanColumn.create("todo")`, `KanbanColumn.create("doing")` e `KanbanColumn.create("done")`. Cada coluna possui seu próprio generator e seu próprio mapa de eventos; mover um card chama o handler da coluna de destino e atualiza os dois roots envolvidos.
+The board owns `{ columns, selectedCardId }`. Per-instance handlers calculate moves and call one update. The template renders all columns from the new state.
+
+For every level, retain the same anatomy. Complexity belongs in state validation and template composition, never in a second lifecycle.
