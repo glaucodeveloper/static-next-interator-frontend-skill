@@ -114,15 +114,7 @@
           <article class="card"><span class="step">5</span><h3>Commit localizado</h3><p>Se o root anterior está conectado, <code>replaceWith()</code> o troca. A referência <code>this.element</code> passa a apontar para o novo root.</p></article>
           <article class="card"><span class="step">6</span><h3>Yield bidirecional</h3><p>Entrega o elemento atual e recebe o patch enviado pela próxima chamada a <code>next(patch)</code>.</p></article>
         </div>
-        <pre aria-label="Componente contador canônico"><code id="canonical-code">function component(Component, props) {
-  const context = {};
-  const iterator = Component.call(context, props);
-  context.next = iterator.next.bind(iterator);
-  context.return = iterator.return.bind(iterator);
-  context.throw = iterator.throw.bind(iterator);
-  return context;
-}
-
+        <pre aria-label="Componente contador canônico"><code id="canonical-code">
 function* CounterComponent({ id, props = {} }) {
   const initialState = {
     counting: props.counting ?? 0,
