@@ -7,6 +7,18 @@ description: Build, migrate, refactor, or review framework-free JavaScript inter
 
 Use one canonical component lifecycle: a `function*`, a live `this` context, and the native generator `next()` protocol.
 
+## Model state as a running program
+
+Treat generators and iterators as native tools for programs that evolve over time, not only as collection utilities. A `function*` defines a suspendable program; its iterator preserves execution position and exposes `next`, `throw`, and `return` as the program's control surface. A yielded value makes the current step observable, and the next `next(input)` resumes the same program with new information.
+
+Use that idea at the appropriate scale:
+
+- application-level generators may preserve route, session, or workflow state across the lifetime of a flow;
+- Static Next generators specialize the protocol for **leaf components**, where the yielded value is one live `HTMLElement` and the resumed value is one local `StatePatch`;
+- a leaf component owns and replaces only its root. "Leaf" describes a state and rendering boundary, not necessarily a visually small component.
+
+Do not turn a leaf component's `yield` into a global message bus. Keep application coordination in an application program and keep the component contract local and exact.
+
 ```js
 function* CounterComponent({ id, props = {} }) {
   this.id = id;
@@ -99,7 +111,7 @@ Use the same reading key for AI and human review: follow the linear path from cu
 Do not reinterpret `yield` as an app-step bus, an event registry, or an HTML-string lifecycle. Do not replace the generator with a returned component object or a static module registry.
 Do not give the disposable template any local-variable identity inside a component.
 
-Read [references/component-anatomy.md](references/component-anatomy.md) before implementing a component, [references/events.md](references/events.md) when defining handlers, [references/component-contract.md](references/component-contract.md) when formalizing types, and [references/technology-transparency.md](references/technology-transparency.md) when deciding architecture for AI-assisted production. Use [examples/ui-components.md](examples/ui-components.md) for the complexity progression.
+Read [references/iterators-programs-and-leaf-components.md](references/iterators-programs-and-leaf-components.md) to distinguish application programs from leaf components, [references/component-anatomy.md](references/component-anatomy.md) before implementing a component, [references/events.md](references/events.md) when defining handlers, [references/component-contract.md](references/component-contract.md) when formalizing types, and [references/technology-transparency.md](references/technology-transparency.md) when deciding architecture for AI-assisted production. Use [examples/ui-components.md](examples/ui-components.md) for the complexity progression.
 
 ## Validate
 

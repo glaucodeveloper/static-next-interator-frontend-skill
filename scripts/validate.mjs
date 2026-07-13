@@ -60,5 +60,7 @@ assert(!/\b(?:const|let|var)\s+template\b/.test(joined), "template não pode ser
 assert(/Pensamento linear do auto-state/.test(joined), "filosofia linear do state patch ausente");
 assert(/O segredo de leitura da IA e o seu é o mesmo/.test(joined), "estratégia de transparência para IA ausente");
 assert(/innerHTML:\s*\/\* html \*\/\s*`/.test(joined), "language injection HTML ausente");
+assert(/Generators definem programas; iterators mantêm sua execução viva/.test(joined), "iterators como programas de estado ausentes");
+assert(/leaf components/.test(joined), "fronteira de leaf components ausente");
 
 console.log(`OK: ${javascriptFiles.length} JS, ${codeBlockCount} blocos JS e contrato generator validado`);

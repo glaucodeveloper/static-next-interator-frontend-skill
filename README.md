@@ -20,6 +20,14 @@ O componente inteiro vive em uma única `function*`. A expressão canônica é `
 </button>
 ```
 
+## Estado como programa; UI como leaf component
+
+Generators definem programas; iterators mantêm sua execução viva. Isso permite preservar estado e posição ao longo de uma rota, sessão ou workflow: `yield` torna o momento atual observável e `next(input)` continua o mesmo programa com a próxima informação.
+
+Static Next aplica essa primitiva a **leaf components**. Cada leaf possui um único root DOM, seu estado local e seus handlers; entrega o `HTMLElement` atual e recebe somente seu `StatePatch`. "Leaf" é uma fronteira de propriedade, não sinônimo de UI pequena: tabelas, formulários e painéis podem continuar sendo leaves quando possuem e substituem apenas o próprio root.
+
+Programas de aplicação podem coordenar estado duradouro em outra escala. O `yield` do leaf, porém, não deve virar um barramento global de mensagens.
+
 ## Inspiração em Effect
 
 Static Next é claramente inspirado pela família Effect/Effect-TS na ideia de descrever um programa suspenso e retomá-lo através de um intérprete explícito. Aqui essa influência é aplicada ao DOM: o generator descreve o ciclo do componente, `yield` demarca a fronteira entre render atual e próximo estado, e o binder conduz o iterator.
@@ -37,6 +45,7 @@ Extensões de editor para HTML em template strings podem ser usadas diretamente.
 ## Documentação
 
 - [Anatomia completa do generator](references/component-anatomy.md)
+- [Iterators, programas e leaf components](references/iterators-programs-and-leaf-components.md)
 - [Contrato e tipos](references/component-contract.md)
 - [Handlers e identidade DOM](references/events.md)
 - [Transparência tecnológica e IA](references/technology-transparency.md)

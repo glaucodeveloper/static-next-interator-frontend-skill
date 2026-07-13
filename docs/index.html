@@ -83,7 +83,7 @@
 </head>
 <body>
   <a class="skip" href="#conteudo">Pular para o conteúdo</a>
-  <header><nav class="shell" aria-label="Principal"><a class="brand" href="#introducao">Static Next</a><ul><li><a href="#introducao">Introdução</a></li><li><a href="#anatomia">Anatomia</a></li><li><a href="#transparencia">IA</a></li><li><a href="#galeria">Galeria</a></li><li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">GitHub</a></li></ul></nav></header>
+  <header><nav class="shell" aria-label="Principal"><a class="brand" href="#introducao">Static Next</a><ul><li><a href="#introducao">Introdução</a></li><li><a href="#anatomia">Anatomia</a></li><li><a href="#programas">Programas</a></li><li><a href="#transparencia">IA</a></li><li><a href="#galeria">Galeria</a></li><li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">GitHub</a></li></ul></nav></header>
   <main id="conteudo">
     <section id="introducao"><div class="shell">
       <p class="eyebrow">Antes do primeiro exemplo</p><h1>Uma interface inteira reduzida a uma sequência observável</h1>
@@ -169,6 +169,43 @@ function* CounterComponent({ id, props = {} }) {
       <p class="lede">Uma única <code>function*</code> guarda estado em <code>this</code>, materializa um <code>DocumentFragment</code> descartável, entrega um <code>HTMLElement</code> vivo e recebe a próxima transição por <code>next(StatePatch)</code>.</p>
       <p class="lede">A estrutura foi desenhada para ser lida do mesmo modo por quem programa, por quem revisa e pela IA que colabora com ambos: cada causa e cada efeito permanecem visíveis na linha do componente.</p>
       <div class="pill-row"><span class="pill">function*</span><span class="pill">yield HTMLElement</span><span class="pill">next(StatePatch)</span><span class="pill">element.component</span><span class="pill">replaceWith</span></div>
+    </div></section>
+
+    <section id="programas"><div class="shell">
+      <p class="eyebrow">Da aplicação ao último root</p><h2>Generators definem programas; iterators mantêm sua execução viva</h2>
+      <p class="intro">Uma <code>function*</code> não serve apenas para percorrer coleções. Ela pode representar um programa que conserva dados e posição entre eventos. O generator define a sequência; o iterator é seu controle vivo. <code>yield output</code> torna o momento atual observável, enquanto <code>next(input)</code> retoma exatamente o mesmo programa com a próxima informação.</p>
+      <div class="split">
+        <div>
+          <article class="card"><span class="step">1</span><h3>Programa de aplicação</h3><p>Rota, sessão ou workflow podem durar por muitos eventos. O iterator preserva o estado e o ponto de execução sem reconstruir o programa a cada transição.</p></article>
+          <article class="card"><span class="step">2</span><h3>Superfície de controle nativa</h3><p><code>next</code> continua, <code>throw</code> devolve uma falha ao ponto suspenso e <code>return</code> encerra. Não é necessário inventar outro protocolo para controlar a sequência.</p></article>
+          <article class="card"><span class="step">3</span><h3>Static Next é o leaf</h3><p>O componente especializa a mesma ideia no nó terminal de UI: produz um <code>HTMLElement</code>, recebe um <code>StatePatch</code> local e substitui somente o próprio root.</p></article>
+        </div>
+        <pre aria-label="Programa generator de estado"><code>function* stateProgram(initialState) {
+  const state = { ...initialState };
+
+  while (true) {
+    Object.assign(
+      state,
+      yield Object.freeze({ ...state }),
+    );
+  }
+}
+
+const application = stateProgram({
+  route: "home",
+  authenticated: false,
+});
+
+const initial = application.next().value;
+const authenticated = application.next({
+  authenticated: true,
+}).value;
+const details = application.next({
+  route: "details",
+}).value;</code></pre>
+      </div>
+      <div class="flow" aria-label="Escalas de programas generator"><span>programa da aplicação</span><b>→</b><span>rota · sessão · workflow</span><b>→</b><span>leaf component</span><b>→</b><span>um root DOM vivo</span></div>
+      <p class="callout"><strong>Leaf não significa visualmente pequeno.</strong> Um formulário, uma tabela ou um painel complexo continua sendo leaf quando constitui uma fronteira local: possui um estado, um root e um ciclo de substituição. Coordenação global pertence ao programa da aplicação; o <code>yield</code> do componente não vira barramento de mensagens.</p>
     </div></section>
 
     <section id="yield"><div class="shell"><p class="eyebrow">O ponto decisivo</p><h2><code>Object.assign(state, yield element)</code></h2><p class="intro">A expressão completa une a saída da renderização atual à aplicação automática do próximo state patch.</p>
