@@ -396,28 +396,37 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
       this.element = null;
       this.search = query => this.next({ query });
       this.sort = sort => this.next({ sort });
-
+    
       while (true) {
         const { query, sort } = this.state;
+    
         const rows = this.state.rows
-          .filter(row => row.label.toLowerCase().includes(query.toLowerCase()))
+          .filter(row =>
+            row.label.toLowerCase().includes(query.toLowerCase())
+          )
           .toSorted((a, b) => a[sort].localeCompare(b[sort]));
+    
         const focused = this.element?.contains(document.activeElement);
+    
         Object.assign(this.state, yield (this.element = ((element) => {
           element.id = id;
           element.component = this;
-          const input = element.querySelector("[data-field='query']");
-          input.value = query;
-          if (this.element?.isConnected) this.element.replaceWith(element);
-          if (focused) {
-            input.focus();
-            input.setSelectionRange(input.value.length, input.value.length);
+    
+          if (this.element?.isConnected) {
+            this.element.replaceWith(element);
           }
+    
           return element;
         })(Object.assign(document.createElement("template"), {
           innerHTML: /* html */ `<section><h4>Data grid</h4>
-            <label>Pesquisar<input data-field="query" type="search"
-              oninput="document.getElementById('${id}').component.search(this.value)"></label>
+            <label>Pesquisar<input
+              data-field="query"
+              type="search"
+              value="${query}"
+              ${focused ? "autofocus" : ""}
+              onfocus="this.setSelectionRange(this.value.length, this.value.length)"
+              oninput="document.getElementById('${id}').component.search(this.value)"
+            ></label>
             <div class="actions">
               <button onclick="document.getElementById('${id}').component.sort('label')">Ordenar rótulo</button>
               <button onclick="document.getElementById('${id}').component.sort('state')">Ordenar estado</button>
@@ -430,7 +439,7 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
         }).content.firstElementChild)));
       }
     }
-
+    
     function* QuantityList({ id }) {
       this.id = id;
       this.state = {
