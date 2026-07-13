@@ -132,6 +132,26 @@ Object.assign(document.createElement("template"), {
 
 O template não faz parte do estado nem da identidade do componente. É apenas o mecanismo descartável que materializa o `DocumentFragment`; somente o `HTMLElement` extraído entra em `this.element` e no `yield`.
 
+### Extensões para HTML em template strings
+
+Editores podem reconhecer HTML embutido em template literals por language injection. Use a anotação sem custo de runtime:
+
+```js
+Object.assign(document.createElement("template"), {
+  innerHTML: /* html */ `<section>${content}</section>`,
+}).content.firstElementChild
+```
+
+Extensões compatíveis podem fornecer destaque de sintaxe, autocomplete, Emmet e formatação dentro da string. A anotação é apenas metadado para tooling e não interfere na avaliação JavaScript.
+
+Um tagged template também pode ser adotado:
+
+```js
+innerHTML: html`<section>${content}</section>`
+```
+
+Nesse caso, documente a função `html` e mantenha seu comportamento explícito. Ela deve produzir o valor esperado por `innerHTML` e não pode fazer o leitor presumir escaping ou sanitização que não existe. Não deixe a tag criar estado, registrar componentes ou introduzir outro lifecycle.
+
 ## 7. Pensamento linear do auto-state
 
 A forma de escrita representa a ordem temporal do programa. Ela não existe para reduzir linhas e não deve ser refatorada como preparação de template separada do `yield`.

@@ -58,5 +58,7 @@ for (const [pattern, message] of [
 
 assert(!/\b(?:const|let|var)\s+template\b/.test(joined), "template não pode ser alocado em variável");
 assert(/Pensamento linear do auto-state/.test(joined), "filosofia linear do state patch ausente");
+assert(/O segredo de leitura da IA e o seu é o mesmo/.test(joined), "estratégia de transparência para IA ausente");
+assert(/innerHTML:\s*\/\* html \*\/\s*`/.test(joined), "language injection HTML ausente");
 
 console.log(`OK: ${javascriptFiles.length} JS, ${codeBlockCount} blocos JS e contrato generator validado`);

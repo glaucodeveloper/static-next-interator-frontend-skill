@@ -26,11 +26,20 @@ Static Next é claramente inspirado pela família Effect/Effect-TS na ideia de d
 
 Essa é uma inspiração conceitual, não uma dependência nem uma alegação de compatibilidade com a API de Effect. Static Next usa apenas generators, DOM e JavaScript nativos.
 
+## Transparência tecnológica para produção com IA
+
+Static Next trata simplicidade como uma escolha estratégica: pessoas e sistemas de IA leem a mesma cadeia causal diretamente no código. Estado, template inline, identidade DOM, handlers, `yield`, `StatePatch` e atualização não ficam escondidos por um runtime ou lifecycle implícito.
+
+O segredo de leitura é compartilhado: seguir a linha `estado → root → yield → next(patch) → assign → próximo root`. Isso reduz overhead cognitivo, de contexto e de arquitetura durante geração, revisão e manutenção. Ganhos de bundle ou runtime, porém, só devem ser afirmados quando medidos.
+
+Extensões de editor para HTML em template strings podem ser usadas diretamente. A anotação `/* html */` antes do template literal adiciona highlight, autocomplete ou formatação em tooling compatível sem custo de runtime e sem alterar o protocolo do componente.
+
 ## Documentação
 
 - [Anatomia completa do generator](references/component-anatomy.md)
 - [Contrato e tipos](references/component-contract.md)
 - [Handlers e identidade DOM](references/events.md)
+- [Transparência tecnológica e IA](references/technology-transparency.md)
 - [Exemplos fundamentais](examples/components.md)
 - [Galeria progressiva de componentes](examples/ui-components.md)
 - [Exemplo executável do contador](examples/runnable/counter/)

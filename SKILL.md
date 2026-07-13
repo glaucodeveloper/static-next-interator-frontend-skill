@@ -26,7 +26,7 @@ function* CounterComponent({ id, props = {} }) {
         if (this.element?.isConnected) this.element.replaceWith(element);
         return element;
       })(Object.assign(document.createElement("template"), {
-        innerHTML: `<section><output>${this.state.counting}</output>
+        innerHTML: /* html */ `<section><output>${this.state.counting}</output>
           <button onclick="document.getElementById('${id}').component.increment(1)">+1</button>
         </section>`,
       }).content.firstElementChild)),
@@ -81,10 +81,25 @@ Read the expression linearly, not as nesting for its own sake:
 
 Keep template creation inline because it belongs to the value-producing side of `yield`. Giving the template a separate local lifecycle breaks the linear representation of render-output followed by state-input.
 
+Use editor language-injection extensions when useful. Prefer the zero-runtime annotation `innerHTML: /* html */ \`...\`` so compatible editors can highlight, complete, and format HTML template strings without changing the component contract. Accept a tagged template such as `html\`...\`` only when its implementation stays transparent, returns the expected string, and does not hide escaping, sanitization, state, or lifecycle behavior.
+
+## Prefer technological transparency for AI-assisted production
+
+Treat simplicity as a strategic interface shared by people and AI systems.
+
+- Keep state, render output, DOM identity, handlers, suspension, and patch application visible in the same program.
+- Make the causal chain readable without reconstructing a framework scheduler, compiler transform, hook protocol, or hidden component registry.
+- Let generated code and reviewed code expose the same mechanics; do not maintain a separate mental model for the tool that produced it.
+- Reduce cognitive and architectural overhead by minimizing indirection, adapters, dependency-specific vocabulary, and version-sensitive conventions.
+- Keep validation, types, tests, escaping, accessibility, and teardown explicit; transparency does not remove engineering discipline.
+- Describe bundle or runtime gains only when measured. The immediate claim is lower interpretive overhead, not automatic performance superiority.
+
+Use the same reading key for AI and human review: follow the linear path from current state to rendered root, suspension, received `StatePatch`, state mutation, and next render.
+
 Do not reinterpret `yield` as an app-step bus, an event registry, or an HTML-string lifecycle. Do not replace the generator with a returned component object or a static module registry.
 Do not give the disposable template any local-variable identity inside a component.
 
-Read [references/component-anatomy.md](references/component-anatomy.md) before implementing a component, [references/events.md](references/events.md) when defining handlers, and [references/component-contract.md](references/component-contract.md) when formalizing types. Use [examples/ui-components.md](examples/ui-components.md) for the complexity progression.
+Read [references/component-anatomy.md](references/component-anatomy.md) before implementing a component, [references/events.md](references/events.md) when defining handlers, [references/component-contract.md](references/component-contract.md) when formalizing types, and [references/technology-transparency.md](references/technology-transparency.md) when deciding architecture for AI-assisted production. Use [examples/ui-components.md](examples/ui-components.md) for the complexity progression.
 
 ## Validate
 

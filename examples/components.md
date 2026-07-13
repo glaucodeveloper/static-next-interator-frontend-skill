@@ -35,7 +35,7 @@ function* Counter({ id }) {
         if (this.element?.isConnected) this.element.replaceWith(element);
         return element;
       })(Object.assign(document.createElement("template"), {
-        innerHTML: `<button>${this.state.counting}</button>`,
+        innerHTML: /* html */ `<button>${this.state.counting}</button>`,
       }).content.firstElementChild)),
     );
   }

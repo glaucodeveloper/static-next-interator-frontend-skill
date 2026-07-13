@@ -63,6 +63,9 @@
     .preview output { display:block; padding:1rem; border:1px solid var(--border); border-radius:9px; color:var(--accent); font:800 2rem/1 ui-monospace,monospace; text-align:center; }
     .actions { display:flex; flex-wrap:wrap; gap:.55rem; }
     .row { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.6rem 0; border-bottom:1px solid #344158; }
+    .data-table { width:100%; border-collapse:collapse; margin-top:.8rem; }
+    .data-table th,.data-table td { padding:.65rem; border-bottom:1px solid #344158; text-align:left; }
+    .data-table th { color:var(--muted); font-size:.82rem; }
     .columns { display:grid; grid-template-columns:repeat(3,1fr); gap:.55rem; }
     .column { padding:.65rem; border:1px solid var(--border); border-radius:9px; background:#17243a; }
     .column ul { padding-left:1.1rem; }
@@ -80,14 +83,31 @@
 </head>
 <body>
   <a class="skip" href="#conteudo">Pular para o conteúdo</a>
-  <header><nav class="shell" aria-label="Principal"><a class="brand" href="#inicio">Static Next</a><ul><li><a href="#anatomia">Anatomia</a></li><li><a href="#linearidade">Linearidade</a></li><li><a href="#handlers">Handlers</a></li><li><a href="#galeria">Galeria</a></li><li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">GitHub</a></li></ul></nav></header>
+  <header><nav class="shell" aria-label="Principal"><a class="brand" href="#inicio">Static Next</a><ul><li><a href="#introducao">Introdução</a></li><li><a href="#anatomia">Anatomia</a></li><li><a href="#transparencia">IA</a></li><li><a href="#galeria">Galeria</a></li><li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">GitHub</a></li></ul></nav></header>
   <main id="conteudo">
     <div id="inicio" class="shell hero">
       <p class="eyebrow">Generator nativo · state patch · DOM vivo</p>
       <h1>O componente é um programa suspenso.</h1>
-      <p class="lede">Uma única <code>function*</code> guarda estado em <code>this</code>, cria um <code>DocumentFragment</code>, retorna um <code>HTMLElement</code> vivo e recebe a próxima transição por <code>next(patch)</code>.</p>
+      <p class="lede">Uma única <code>function*</code> guarda estado em <code>this</code>, materializa um <code>DocumentFragment</code> descartável, entrega um <code>HTMLElement</code> vivo e recebe a próxima transição por <code>next(StatePatch)</code>.</p>
+      <p class="lede">A estrutura foi desenhada para ser lida do mesmo modo por quem programa, por quem revisa e pela IA que colabora com ambos: cada causa e cada efeito permanecem visíveis na linha do componente.</p>
       <div class="pill-row"><span class="pill">function*</span><span class="pill">yield HTMLElement</span><span class="pill">next(StatePatch)</span><span class="pill">element.component</span><span class="pill">replaceWith</span></div>
     </div>
+
+    <section id="introducao"><div class="shell">
+      <p class="eyebrow">Antes do primeiro exemplo</p><h2>Uma interface inteira reduzida a uma sequência observável</h2>
+      <p class="intro">Bibliotecas de interface frequentemente distribuem uma única atualização entre estado, hooks, scheduler, reconciliação, bindings e convenções de build. Static Next escolhe outra direção: conservar a complexidade do produto, mas tornar explícito o mecanismo que a executa.</p>
+      <p class="intro">O componente não descreve apenas como a tela parece. Ele conserva sua instância em <code>this</code>, expõe métodos ao próprio root, produz o elemento atual, suspende e espera a informação mínima necessária para continuar. Essa informação é o <code>StatePatch</code>.</p>
+      <div class="cards">
+        <article class="card"><span class="step">A</span><h3>Estado é dado visível</h3><p><code>this.state</code> contém aquilo que determina a renderização. Não há estado duplicado em registries ou closures externos ao componente vivo.</p></article>
+        <article class="card"><span class="step">B</span><h3>O root é a superfície da instância</h3><p><code>element.component = this</code> permite que o DOM encontre os métodos da instância atual sem um barramento global de callbacks.</p></article>
+        <article class="card"><span class="step">C</span><h3>Yield é a fronteira</h3><p>Na ida, entrega o <code>HTMLElement</code>. Na retomada, recebe o patch passado a <code>next()</code>. Uma expressão, duas direções.</p></article>
+        <article class="card"><span class="step">D</span><h3>Patch é a próxima intenção</h3><p>O método não ordena um lifecycle oculto. Ele calcula uma alteração pequena e retoma o programa exatamente onde ele estava suspenso.</p></article>
+      </div>
+      <h3>Como acompanhar o contador a seguir</h3>
+      <p class="intro">Leia primeiro a criação do contexto; depois, a declaração de estado e métodos. Dentro do <code>while</code>, acompanhe a expressão de dentro para fora até o <code>yield</code>. Quando imaginar um clique, faça o caminho inverso: o método chama <code>next(StatePatch)</code>, o assign pendente termina e a volta seguinte produz outro root.</p>
+      <div class="flow" aria-label="Preparação para leitura do exemplo"><span>contexto vivo</span><b>→</b><span>estado + métodos</span><b>→</b><span>root inline</span><b>→</b><span>yield</span><b>→</b><span>state patch</span><b>→</b><span>novo root</span></div>
+      <p class="callout">O contador é pequeno de propósito, mas não é um pseudocódigo incompleto: ele contém a anatomia que os sete exemplos posteriores preservam ao adicionar validação, coleções, foco, composição e assincronicidade.</p>
+    </div></section>
 
     <section id="anatomia"><div class="shell">
       <p class="eyebrow">Tutorial principal</p><h2>Anatomia completa, parte por parte</h2>
@@ -139,7 +159,7 @@ function* CounterComponent({ id, props = {} }) {
 
         return element;
       })(Object.assign(document.createElement("template"), {
-        innerHTML: `&lt;section&gt;
+        innerHTML: /* html */ `&lt;section&gt;
           &lt;output&gt;${this.state.counting}&lt;/output&gt;
           &lt;button onclick="document.getElementById('${id}').component.increment(1)"&gt;+1&lt;/button&gt;
           &lt;button onclick="document.getElementById('${id}').component.reset()"&gt;reset&lt;/button&gt;
@@ -189,6 +209,15 @@ app.append(first.value);</code></pre></article><article class="card"><span class
       <p class="callout">Separar o template em preparação anterior ao auto-state quebra essa representação linear e sugere um lifecycle que não existe. Persistem somente o iterator, <code>this.state</code> e <code>this.element</code>; o template é descartável.</p>
     </div></section>
 
+    <section id="tooling"><div class="shell"><p class="eyebrow">Tooling opcional</p><h2>HTML template string extensions continuam compatíveis</h2><p class="intro">A transparência do paradigma não impede uma boa experiência de edição. Extensões com language injection podem reconhecer o HTML dentro da template string e oferecer highlight, autocomplete, Emmet e formatação.</p>
+      <div class="cards"><article class="card"><span class="step">A</span><h3>Anotação sem runtime</h3><p>Prefira <code>/* html */</code> antes do template literal. O comentário orienta tooling compatível e desaparece para a execução.</p><pre><code>innerHTML: /* html */ `
+  &lt;section&gt;${content}&lt;/section&gt;
+`</code></pre></article><article class="card"><span class="step">B</span><h3>Tagged template opcional</h3><p><code>html`...`</code> também pode ser usado quando a tag é conhecida e documentada. Ela deve continuar produzindo o valor esperado por <code>innerHTML</code>.</p><pre><code>innerHTML: html`
+  &lt;section&gt;${content}&lt;/section&gt;
+`</code></pre></article></div>
+      <p class="callout">Uma tag <code>html</code> não deve esconder escaping, sanitização, registro de instâncias ou outro lifecycle. Syntax highlighting é tooling; segurança e semântica continuam responsabilidades explícitas do componente.</p>
+    </div></section>
+
     <section id="handlers"><div class="shell"><p class="eyebrow">Identidade DOM</p><h2>Handlers chamam métodos do próprio componente</h2><div class="cards"><article class="card"><h3>1. Template declara a intenção</h3><pre><code>&lt;button onclick="document.getElementById('counter-1')
   .component.increment(1)"&gt;+1&lt;/button&gt;</code></pre></article><article class="card"><h3>2. Root resolve a instância</h3><pre><code>element.id = this.id;
 element.component = this;</code></pre></article><article class="card"><h3>3. Método produz state patch</h3><pre><code>this.increment = amount =&gt; this.next({
@@ -200,9 +229,20 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
 
     <section id="inspiracao"><div class="shell"><p class="eyebrow">Genealogia</p><h2>Inspiração clara em Effect/Effect-TS</h2><p class="intro">A influência está na separação entre descrever um programa suspenso e interpretá-lo explicitamente. Static Next especializa essa ideia para o DOM: a função generator descreve o ciclo, o binder dirige <code>next/throw/return</code>, o valor produzido é um <code>HTMLElement</code> e o valor de retomada é um <code>StatePatch</code>.</p><p class="callout">É inspiração conceitual, não dependência ou compatibilidade de API. O runtime usa somente JavaScript e DOM nativos.</p></div></section>
 
+    <section id="transparencia"><div class="shell"><p class="eyebrow">Estratégia para produção com IA</p><h2>Transparência tecnológica é uma escolha operacional</h2><p class="intro">Quando o código é produzido ou modificado com IA, simplicidade deixa de ser apenas preferência estética. Ela reduz a distância entre o que foi solicitado, o que foi gerado, o que será executado e o que uma pessoa precisa auditar antes de publicar.</p>
+      <p class="callout"><strong>O segredo de leitura da IA e o seu é o mesmo:</strong> seguir a linha do programa — estado atual, root produzido, suspensão, <code>StatePatch</code> recebido, estado atualizado e próximo root.</p>
+      <div class="cards">
+        <article class="card"><span class="step">1</span><h3>Menos overhead cognitivo</h3><p>A transição não precisa ser reconstruída a partir de hooks, scheduler, transforms, registries e convenções implícitas distribuídas.</p></article>
+        <article class="card"><span class="step">2</span><h3>Menos overhead de contexto</h3><p>A IA precisa de menos conhecimento sobre versões, plugins e internals antes de compreender uma alteração local. O protocolo relevante está no componente.</p></article>
+        <article class="card"><span class="step">3</span><h3>Menos overhead arquitetural</h3><p>Estado e intenção não atravessam adapters que apenas renomeiam ou transportam o mesmo patch entre camadas.</p></article>
+        <article class="card"><span class="step">4</span><h3>Uma auditoria compartilhada</h3><p>Pessoa e IA podem fazer as mesmas perguntas no mesmo trecho: qual estado entrou, qual método foi chamado, qual patch saiu e qual root foi substituído?</p></article>
+      </div>
+      <h3>Simplicidade não elimina rigor</h3><p class="intro">Validação de patch, escaping, acessibilidade, foco, teardown, concorrência e testes continuam obrigatórios. A vantagem é que esses controles também permanecem explícitos. Ganhos de bundle ou runtime só devem ser declarados depois de medição; o ganho imediato é a redução do overhead de interpretação.</p>
+    </div></section>
+
     <section id="galeria"><div class="shell"><p class="eyebrow">Demonstrações executáveis</p><h2>Sete níveis de componentes reais</h2><p class="intro">Troque a opção para executar outro componente. A demonstração e o código exibido usam a mesma <code>function*</code>; clique, digite, ordene e atualize o estado.</p>
-      <div class="picker"><label for="example-select">Escolha a complexidade<select id="example-select"><option value="counter">Nível 1 — Contador clássico</option><option value="disclosure">Nível 2 — Disclosure acessível</option><option value="form">Nível 3 — Formulário validado</option><option value="table">Nível 4 — Tabela pesquisável</option><option value="cart">Nível 5 — Carrinho derivado</option><option value="kanban">Nível 6 — Kanban estrutural</option><option value="async">Nível 7 — Workspace assíncrono</option></select></label><span class="badge">7 generators · 1 contrato</span></div>
-      <div class="gallery"><article class="panel"><p id="example-level" class="eyebrow"></p><h3 id="example-title"></h3><p id="example-copy"></p><div id="example-preview" class="preview" aria-live="polite"></div><p id="example-trace" class="trace"></p></article><article class="code-panel"><div class="code-head"><span>Implementação executada</span><span>function* + this + yield</span></div><pre><code id="example-code"></code></pre></article></div>
+      <div class="picker"><label for="example-select">Escolha a complexidade<select id="example-select"><option value="counter">Nível 1 — Output e grupo de controles</option><option value="disclosure">Nível 2 — Região condicional acessível</option><option value="form">Nível 3 — Formulário controlado</option><option value="table">Nível 4 — Data grid pesquisável</option><option value="cart">Nível 5 — Lista com steppers e total</option><option value="kanban">Nível 6 — Painel de múltiplas colunas</option><option value="async">Nível 7 — Painel de estados assíncronos</option></select></label><span class="badge">7 UIs · 1 contrato</span></div>
+      <div class="gallery"><article class="panel"><p id="example-level" class="eyebrow"></p><h3 id="example-title"></h3><p id="example-copy"></p><div id="example-preview" class="preview" aria-live="polite"></div><p id="example-trace" class="trace"></p></article><article class="code-panel"><div class="code-head"><span>Generator desta UI</span><span>somente function* do componente</span></div><pre><code id="example-code"></code></pre></article></div>
     </div></section>
   </main>
   <footer><div class="shell">Static Next Interator Frontend · Generator components em JavaScript puro.</div></footer>
@@ -230,7 +270,7 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
           if (this.element?.isConnected) this.element.replaceWith(element);
           return element;
         })(Object.assign(document.createElement("template"), {
-          innerHTML: `<section><h4>Contador clássico</h4>
+          innerHTML: /* html */ `<section><h4>Contador clássico</h4>
             <output>${this.state.counting}</output><div class="actions">
             <button onclick="document.getElementById('${id}').component.add(-1)">−1</button>
             <button onclick="document.getElementById('${id}').component.add(1)">+1</button>
@@ -254,7 +294,7 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
           if (this.element?.isConnected) this.element.replaceWith(element);
           return element;
         })(Object.assign(document.createElement("template"), {
-          innerHTML: `<article><h4>Detalhes do pedido</h4>
+          innerHTML: /* html */ `<article><h4>Detalhes do pedido</h4>
             <button aria-expanded="${this.state.open}"
               onclick="document.getElementById('${id}').component.toggle()">
               ${this.state.open ? "Ocultar" : "Mostrar"} detalhes
@@ -298,7 +338,7 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
           }
           return element;
         })(Object.assign(document.createElement("template"), {
-          innerHTML: `<section><h4>Perfil</h4>
+          innerHTML: /* html */ `<section><h4>Perfil</h4>
             <label>Nome<input data-field="name" type="text"
               oninput="document.getElementById('${id}').component.change('name',this.value)"></label>
             ${errors.name ? `<small class="error">${errors.name}</small>` : ""}
@@ -312,16 +352,16 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
       }
     }
 
-    function* SearchTable({ id }) {
+    function* SearchableDataGrid({ id }) {
       this.id = id;
       this.state = {
         query: "",
-        sort: "name",
+        sort: "label",
         rows: [
-          { name: "Ana Lima", status: "Ativa" },
-          { name: "Studio Norte", status: "Lead" },
-          { name: "Grupo Solar", status: "Ativa" },
-          { name: "Beta Labs", status: "Pausa" },
+          { label: "Linha 01", state: "Selecionada" },
+          { label: "Linha 02", state: "Padrão" },
+          { label: "Linha 03", state: "Desabilitada" },
+          { label: "Linha 04", state: "Padrão" },
         ],
       };
       this.element = null;
@@ -331,7 +371,7 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
       while (true) {
         const { query, sort } = this.state;
         const rows = this.state.rows
-          .filter(row => row.name.toLowerCase().includes(query.toLowerCase()))
+          .filter(row => row.label.toLowerCase().includes(query.toLowerCase()))
           .toSorted((a, b) => a[sort].localeCompare(b[sort]));
         const focused = this.element?.contains(document.activeElement);
         Object.assign(this.state, yield (this.element = ((element) => {
@@ -346,39 +386,42 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
           }
           return element;
         })(Object.assign(document.createElement("template"), {
-          innerHTML: `<section><h4>Clientes</h4>
+          innerHTML: /* html */ `<section><h4>Data grid</h4>
             <label>Pesquisar<input data-field="query" type="search"
               oninput="document.getElementById('${id}').component.search(this.value)"></label>
             <div class="actions">
-              <button onclick="document.getElementById('${id}').component.sort('name')">Ordenar nome</button>
-              <button onclick="document.getElementById('${id}').component.sort('status')">Ordenar status</button>
+              <button onclick="document.getElementById('${id}').component.sort('label')">Ordenar rótulo</button>
+              <button onclick="document.getElementById('${id}').component.sort('state')">Ordenar estado</button>
             </div>
-            ${rows.map(row => `<div class="row"><b>${row.name}</b><span>${row.status}</span></div>`).join("") || "<p>Nenhum resultado.</p>"}
+            <table class="data-table"><thead><tr><th>Rótulo</th><th>Estado da UI</th></tr></thead>
+              <tbody>${rows.map(row => `<tr><td>${row.label}</td><td>${row.state}</td></tr>`).join("")}</tbody>
+            </table>
+            ${rows.length ? "" : "<p>Nenhuma linha visível.</p>"}
           </section>`,
         }).content.firstElementChild)));
       }
     }
 
-    function* Cart({ id }) {
+    function* QuantityList({ id }) {
       this.id = id;
       this.state = {
         coupon: false,
         items: [
-          { id: "book", name: "Livro", price: 59.9, qty: 1 },
-          { id: "course", name: "Curso", price: 129, qty: 1 },
+          { id: "compact", label: "Opção compacta", unit: 24, quantity: 1 },
+          { id: "expanded", label: "Opção expandida", unit: 48, quantity: 1 },
         ],
       };
       this.element = null;
       this.quantity = (itemId, delta) => this.next({
         items: this.state.items.map(item => item.id === itemId
-          ? { ...item, qty: Math.max(0, item.qty + delta) }
+          ? { ...item, quantity: Math.max(0, item.quantity + delta) }
           : item),
       });
       this.coupon = () => this.next({ coupon: !this.state.coupon });
 
       while (true) {
         const { items, coupon } = this.state;
-        const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+        const subtotal = items.reduce((sum, item) => sum + item.unit * item.quantity, 0);
         const total = subtotal * (coupon ? 0.9 : 1);
         Object.assign(this.state, yield (this.element = ((element) => {
           element.id = id;
@@ -386,8 +429,8 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
           if (this.element?.isConnected) this.element.replaceWith(element);
           return element;
         })(Object.assign(document.createElement("template"), {
-          innerHTML: `<section><h4>Carrinho</h4>
-            ${items.map(item => `<div class="row"><span>${item.name} · ${item.qty}</span>
+          innerHTML: /* html */ `<section><h4>Lista repetível com steppers</h4>
+            ${items.map(item => `<div class="row"><span>${item.label} · ${item.quantity}</span>
               <span class="actions">
                 <button onclick="document.getElementById('${id}').component.quantity('${item.id}',-1)">−</button>
                 <button onclick="document.getElementById('${id}').component.quantity('${item.id}',1)">+</button>
@@ -401,9 +444,9 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
       }
     }
 
-    function* Kanban({ id }) {
+    function* ColumnBoard({ id }) {
       this.id = id;
-      this.state = { columns: { backlog: ["Pesquisa", "Contrato"], doing: ["Checkout"], done: ["Tokens"] } };
+      this.state = { columns: { first: ["Item 01", "Item 02"], second: ["Item 03"], third: ["Item 04"] } };
       this.element = null;
       this.move = (card, to) => {
         const columns = Object.fromEntries(Object.entries(this.state.columns)
@@ -414,24 +457,24 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
 
       while (true) {
         const { columns } = this.state;
-        const labels = { backlog: "Backlog", doing: "Em curso", done: "Feito" };
+        const labels = { first: "Coluna 1", second: "Coluna 2", third: "Coluna 3" };
         Object.assign(this.state, yield (this.element = ((element) => {
           element.id = id;
           element.component = this;
           if (this.element?.isConnected) this.element.replaceWith(element);
           return element;
         })(Object.assign(document.createElement("template"), {
-          innerHTML: `<section><h4>Board de entrega</h4><div class="columns">
+          innerHTML: /* html */ `<section><h4>Painel de múltiplas colunas</h4><div class="columns">
             ${Object.entries(columns).map(([key, cards]) => `<div class="column"><b>${labels[key]}</b><ul>
-              ${cards.map(card => `<li>${card}${key !== "done" ? `
-                <button aria-label="Mover ${card}" onclick="document.getElementById('${id}').component.move('${card}','${key === "backlog" ? "doing" : "done"}')">→</button>` : ""}</li>`).join("")}
+              ${cards.map(card => `<li>${card}${key !== "third" ? `
+                <button aria-label="Mover ${card}" onclick="document.getElementById('${id}').component.move('${card}','${key === "first" ? "second" : "third"}')">→</button>` : ""}</li>`).join("")}
             </ul></div>`).join("")}
           </div></section>`,
         }).content.firstElementChild)));
       }
     }
 
-    function* AsyncWorkspace({ id }) {
+    function* AsyncStatusPanel({ id }) {
       this.id = id;
       this.state = { status: "idle", attempt: 0, message: "Nenhuma sincronização iniciada." };
       this.element = null;
@@ -452,7 +495,7 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
           if (this.element?.isConnected) this.element.replaceWith(element);
           return element;
         })(Object.assign(document.createElement("template"), {
-          innerHTML: `<section><h4>Workspace</h4>
+          innerHTML: /* html */ `<section><h4>Painel de estado assíncrono</h4>
             <div class="row"><span>Status</span><strong>${status}</strong></div>
             <p class="${status === "error" ? "error" : ""}">${message}</p>
             <div class="actions">
@@ -466,17 +509,17 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
     }
 
     const entries={
-      counter:{level:"Nível 1",title:"Contador clássico",copy:"Estado escalar, três variações do mesmo handler e reset.",Component:Counter},
-      disclosure:{level:"Nível 2",title:"Disclosure acessível",copy:"Estado booleano, conteúdo condicional e aria-expanded derivados.",Component:Disclosure},
-      form:{level:"Nível 3",title:"Formulário validado",copy:"Estado aninhado, handlers de input, erros e resultado de submit.",Component:ValidatedForm},
-      table:{level:"Nível 4",title:"Tabela pesquisável",copy:"Query, ordenação e coleção derivada a cada render.",Component:SearchTable},
-      cart:{level:"Nível 5",title:"Carrinho com totais",copy:"Coleções imutáveis, quantidade, cupom e total derivado.",Component:Cart},
-      kanban:{level:"Nível 6",title:"Kanban estrutural",copy:"Movimentação entre coleções aninhadas e composição de colunas.",Component:Kanban},
-      async:{level:"Nível 7",title:"Workspace assíncrono",copy:"Transições idle, pending, success e error no mesmo generator vivo.",Component:AsyncWorkspace},
+      counter:{level:"Nível 1",title:"Output com grupo de controles",copy:"Estado escalar, controles de incremento e reset do output.",Component:Counter},
+      disclosure:{level:"Nível 2",title:"Região condicional acessível",copy:"Estado booleano, conteúdo condicional e aria-expanded derivados.",Component:Disclosure},
+      form:{level:"Nível 3",title:"Formulário controlado",copy:"Campos controlados, foco preservado, erros locais e resultado de validação.",Component:ValidatedForm},
+      table:{level:"Nível 4",title:"Data grid pesquisável",copy:"Input de busca, ordenação, semântica tabular e linhas derivadas.",Component:SearchableDataGrid},
+      cart:{level:"Nível 5",title:"Lista com steppers e total",copy:"Repetição de controles, coleção imutável, quantidades e valor derivado.",Component:QuantityList},
+      kanban:{level:"Nível 6",title:"Painel de múltiplas colunas",copy:"Regiões compostas, movimentação de itens e estado estrutural.",Component:ColumnBoard},
+      async:{level:"Nível 7",title:"Painel de estados assíncronos",copy:"Estados idle, pending, success e error com feedback e controle desabilitado.",Component:AsyncStatusPanel},
     };
     const select=document.getElementById("example-select"),preview=document.getElementById("example-preview"),level=document.getElementById("example-level"),title=document.getElementById("example-title"),copy=document.getElementById("example-copy"),code=document.getElementById("example-code"),trace=document.getElementById("example-trace");
     let live=null;
-    function showExample(){if(live?.return)live.return();const entry=entries[select.value];preview.replaceChildren();live=component(entry.Component,{id:`demo-${select.value}`});preview.append(live.next().value);level.textContent=entry.level;title.textContent=entry.title;copy.textContent=entry.copy;code.textContent=`${component.toString()}\n\n${entry.Component.toString()}`;trace.textContent="DOM event → element.component → this.method → this.next(patch) → yield resumes → state merge → new HTMLElement";}
+    function showExample(){if(live?.return)live.return();const entry=entries[select.value];preview.replaceChildren();live=component(entry.Component,{id:`demo-${select.value}`});preview.append(live.next().value);level.textContent=entry.level;title.textContent=entry.title;copy.textContent=entry.copy;code.textContent=entry.Component.toString();trace.textContent="DOM event → element.component → this.method → this.next(patch) → yield resumes → state merge → new HTMLElement";}
     select.addEventListener("change",showExample);showExample();
   </script>
 </body>
