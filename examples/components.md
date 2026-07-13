@@ -23,8 +23,6 @@ function* Counter({ id }) {
   this.increment = () => this.next({ counting: this.state.counting + 1 });
 
   while (true) {
-    const template = document.createElement("template");
-    template.innerHTML = `<button>${this.state.counting}</button>`;
     Object.assign(
       this.state,
       yield (this.element = ((element) => {
@@ -36,7 +34,9 @@ function* Counter({ id }) {
         );
         if (this.element?.isConnected) this.element.replaceWith(element);
         return element;
-      })(template.content.firstElementChild)),
+      })(Object.assign(document.createElement("template"), {
+        innerHTML: `<button>${this.state.counting}</button>`,
+      }).content.firstElementChild)),
     );
   }
 }

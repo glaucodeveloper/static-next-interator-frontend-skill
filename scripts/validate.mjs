@@ -51,9 +51,12 @@ for (const [pattern, message] of [
   [/Object\.assign\(\s*this\.state,\s*yield\s*\(this\.element\s*=/, "auto-state generator ausente"],
   [/element\.component\s*=\s*this/, "back-reference ausente"],
   [/document\.getElementById\([^\n]+\.component/, "handler por root.component ausente"],
-  [/template\.content\.firstElementChild/, "DocumentFragment/template ausente"],
+  [/Object\.assign\(document\.createElement\("template"\),\s*\{\s*innerHTML/, "template inline ausente"],
 ]) {
   assert(pattern.test(joined), message);
 }
+
+assert(!/\b(?:const|let|var)\s+template\b/.test(joined), "template não pode ser alocado em variável");
+assert(/Pensamento linear do auto-state/.test(joined), "filosofia linear do state patch ausente");
 
 console.log(`OK: ${javascriptFiles.length} JS, ${codeBlockCount} blocos JS e contrato generator validado`);

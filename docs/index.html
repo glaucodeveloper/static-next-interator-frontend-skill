@@ -51,6 +51,7 @@
     pre { width:100%; min-width:0; margin:0; max-width:100%; overflow:auto; padding:1.15rem; border:1px solid var(--border); border-radius:11px; background:var(--code); color:#dbeafe; tab-size:2; }
     details pre { border-width:1px 0 0; border-radius:0; }
     code { font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.86em; }
+    :not(pre) > code { overflow-wrap:anywhere; word-break:break-word; }
     .callout { margin:1.3rem 0; padding:1rem 1.2rem; border-left:4px solid var(--accent); background:var(--surface-2); color:var(--muted); }
     .picker { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:1rem; align-items:end; margin:1.7rem 0; }
     label { display:grid; gap:.45rem; color:var(--muted); font-weight:700; }
@@ -79,7 +80,7 @@
 </head>
 <body>
   <a class="skip" href="#conteudo">Pular para o conteúdo</a>
-  <header><nav class="shell" aria-label="Principal"><a class="brand" href="#inicio">Static Next</a><ul><li><a href="#anatomia">Anatomia</a></li><li><a href="#yield">Yield</a></li><li><a href="#handlers">Handlers</a></li><li><a href="#galeria">Galeria</a></li><li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">GitHub</a></li></ul></nav></header>
+  <header><nav class="shell" aria-label="Principal"><a class="brand" href="#inicio">Static Next</a><ul><li><a href="#anatomia">Anatomia</a></li><li><a href="#linearidade">Linearidade</a></li><li><a href="#handlers">Handlers</a></li><li><a href="#galeria">Galeria</a></li><li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">GitHub</a></li></ul></nav></header>
   <main id="conteudo">
     <div id="inicio" class="shell hero">
       <p class="eyebrow">Generator nativo · state patch · DOM vivo</p>
@@ -96,7 +97,7 @@
         <div>
           <article class="card"><span class="step">1</span><h3>Binder mínimo</h3><p>Cria um contexto independente, chama o generator com esse contexto como <code>this</code> e liga os métodos nativos do iterator.</p></article>
           <article class="card"><span class="step">2</span><h3>Estado e métodos em this</h3><p><code>id</code>, <code>state</code>, <code>element</code> e handlers pertencem à instância, não a registries globais.</p></article>
-          <article class="card"><span class="step">3</span><h3>Template vira fragmento</h3><p><code>template.content</code> é um <code>DocumentFragment</code>. O componente exige um único root e aplica o id depois de extraí-lo.</p></article>
+          <article class="card"><span class="step">3</span><h3>Template inline vira fragmento</h3><p>O template descartável nasce dentro de <code>Object.assign(document.createElement("template"), { innerHTML })</code>. Seu <code>.content</code> é consumido imediatamente, sem variável local.</p></article>
           <article class="card"><span class="step">4</span><h3>Root estendido</h3><p><code>element.component = this</code> liga o nó atual ao contexto vivo que contém métodos e estado.</p></article>
           <article class="card"><span class="step">5</span><h3>Commit localizado</h3><p>Se o root anterior está conectado, <code>replaceWith()</code> o troca. A referência <code>this.element</code> passa a apontar para o novo root.</p></article>
           <article class="card"><span class="step">6</span><h3>Yield bidirecional</h3><p>Entrega o elemento atual e recebe o patch enviado pela próxima chamada a <code>next(patch)</code>.</p></article>
@@ -126,13 +127,6 @@ function* CounterComponent({ id, props = {} }) {
   this.reset = () =&gt; this.next(initialState);
 
   while (true) {
-    const template = document.createElement("template");
-    template.innerHTML = `&lt;section&gt;
-      &lt;output&gt;${this.state.counting}&lt;/output&gt;
-      &lt;button onclick="document.getElementById('${id}').component.increment(1)"&gt;+1&lt;/button&gt;
-      &lt;button onclick="document.getElementById('${id}').component.reset()"&gt;reset&lt;/button&gt;
-    &lt;/section&gt;`;
-
     Object.assign(
       this.state,
       yield (this.element = ((element) =&gt; {
@@ -144,7 +138,13 @@ function* CounterComponent({ id, props = {} }) {
         }
 
         return element;
-      })(template.content.firstElementChild)),
+      })(Object.assign(document.createElement("template"), {
+        innerHTML: `&lt;section&gt;
+          &lt;output&gt;${this.state.counting}&lt;/output&gt;
+          &lt;button onclick="document.getElementById('${id}').component.increment(1)"&gt;+1&lt;/button&gt;
+          &lt;button onclick="document.getElementById('${id}').component.reset()"&gt;reset&lt;/button&gt;
+        &lt;/section&gt;`,
+      }).content.firstElementChild)),
     );
   }
 }</code></pre>
@@ -156,6 +156,37 @@ function* CounterComponent({ id, props = {} }) {
 app.append(first.value);</code></pre></article><article class="card"><span class="step">B</span><h3>Entrada</h3><p><code>component.next(patch)</code> retoma o ponto suspenso. O argumento vira o valor de <code>yield element</code>.</p><pre><code>counter.next({ counting: 10 });
 // patch === { counting: 10 }</code></pre></article></div>
       <p class="callout">O primeiro <code>next()</code> suspende no <code>yield</code> e entrega o root. O próximo <code>next(patch)</code> retoma a expressão; seu argumento torna-se o segundo argumento de <code>Object.assign</code>, atualiza <code>this.state</code> e libera a próxima volta do render.</p>
+    </div></section>
+
+    <section id="linearidade"><div class="shell"><p class="eyebrow">Filosofia de escrita</p><h2>O código é a linha temporal do componente</h2><p class="intro">O template inline não é um truque de concisão. Sua posição dentro do <code>yield</code> preserva a sequência exata: produzir a interface atual, suspender, receber o <code>StatePatch</code>, concluir a atualização e produzir a interface seguinte.</p>
+      <div class="flow" aria-label="Pensamento linear do state patch"><span>abre assign</span><b>→</b><span>cria root inline</span><b>→</b><span>yield suspende</span><b>→</b><span>next(patch)</span><b>→</b><span>assign conclui</span><b>→</b><span>novo render</span></div>
+      <div class="split"><div>
+        <article class="card"><span class="step">1</span><h3>Atualização pendente</h3><p><code>Object.assign(this.state, ...)</code> abre a operação, mas ainda não possui o segundo argumento.</p></article>
+        <article class="card"><span class="step">2</span><h3>Produção transitória</h3><p>O template é criado, preenchido e consumido inline. Ele não recebe nome porque não possui identidade nem duração no componente.</p></article>
+        <article class="card"><span class="step">3</span><h3>Fronteira de suspensão</h3><p>O root é entregue por <code>yield</code>. A chamada externa recebe o <code>HTMLElement</code>; o assign continua incompleto.</p></article>
+        <article class="card"><span class="step">4</span><h3>Recebimento do StatePatch</h3><p><code>this.next(statePatch)</code> retoma exatamente o ponto suspenso. O patch vira o valor da expressão <code>yield (...)</code>.</p></article>
+        <article class="card"><span class="step">5</span><h3>Conclusão e repetição</h3><p>O <code>Object.assign</code> finalmente atualiza o estado. O <code>while</code> continua e o próximo root nasce do estado novo.</p></article>
+      </div><pre><code>Object.assign(
+  this.state,
+  yield (
+    this.element = ((element) =&gt; {
+      element.id = this.id;
+      element.component = this;
+
+      if (this.element?.isConnected) {
+        this.element.replaceWith(element);
+      }
+
+      return element;
+    })(
+      Object.assign(
+        document.createElement("template"),
+        { innerHTML: html },
+      ).content.firstElementChild
+    )
+  ),
+);</code></pre></div>
+      <p class="callout">Separar o template em preparação anterior ao auto-state quebra essa representação linear e sugere um lifecycle que não existe. Persistem somente o iterator, <code>this.state</code> e <code>this.element</code>; o template é descartável.</p>
     </div></section>
 
     <section id="handlers"><div class="shell"><p class="eyebrow">Identidade DOM</p><h2>Handlers chamam métodos do próprio componente</h2><div class="cards"><article class="card"><h3>1. Template declara a intenção</h3><pre><code>&lt;button onclick="document.getElementById('counter-1')
@@ -193,21 +224,20 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
       this.reset = () => this.next({ counting: 0 });
 
       while (true) {
-        const template = document.createElement("template");
-        template.innerHTML = `<section><h4>Contador clássico</h4>
-          <output>${this.state.counting}</output><div class="actions">
-          <button onclick="document.getElementById('${id}').component.add(-1)">−1</button>
-          <button onclick="document.getElementById('${id}').component.add(1)">+1</button>
-          <button onclick="document.getElementById('${id}').component.add(10)">+10</button>
-          <button onclick="document.getElementById('${id}').component.reset()">Resetar</button>
-        </div></section>`;
-
         Object.assign(this.state, yield (this.element = ((element) => {
           element.id = id;
           element.component = this;
           if (this.element?.isConnected) this.element.replaceWith(element);
           return element;
-        })(template.content.firstElementChild)));
+        })(Object.assign(document.createElement("template"), {
+          innerHTML: `<section><h4>Contador clássico</h4>
+            <output>${this.state.counting}</output><div class="actions">
+            <button onclick="document.getElementById('${id}').component.add(-1)">−1</button>
+            <button onclick="document.getElementById('${id}').component.add(1)">+1</button>
+            <button onclick="document.getElementById('${id}').component.add(10)">+10</button>
+            <button onclick="document.getElementById('${id}').component.reset()">Resetar</button>
+          </div></section>`,
+        }).content.firstElementChild)));
       }
     }
 
@@ -218,21 +248,20 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
       this.toggle = () => this.next({ open: !this.state.open });
 
       while (true) {
-        const template = document.createElement("template");
-        template.innerHTML = `<article><h4>Detalhes do pedido</h4>
-          <button aria-expanded="${this.state.open}"
-            onclick="document.getElementById('${id}').component.toggle()">
-            ${this.state.open ? "Ocultar" : "Mostrar"} detalhes
-          </button>
-          ${this.state.open ? "<p>Entrega expressa · pagamento aprovado · total R$ 248,90.</p>" : ""}
-        </article>`;
-
         Object.assign(this.state, yield (this.element = ((element) => {
           element.id = id;
           element.component = this;
           if (this.element?.isConnected) this.element.replaceWith(element);
           return element;
-        })(template.content.firstElementChild)));
+        })(Object.assign(document.createElement("template"), {
+          innerHTML: `<article><h4>Detalhes do pedido</h4>
+            <button aria-expanded="${this.state.open}"
+              onclick="document.getElementById('${id}').component.toggle()">
+              ${this.state.open ? "Ocultar" : "Mostrar"} detalhes
+            </button>
+            ${this.state.open ? "<p>Entrega expressa · pagamento aprovado · total R$ 248,90.</p>" : ""}
+          </article>`,
+        }).content.firstElementChild)));
       }
     }
 
@@ -256,18 +285,6 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
         const activeField = this.element?.contains(document.activeElement)
           ? document.activeElement.dataset.field
           : null;
-        const template = document.createElement("template");
-        template.innerHTML = `<section><h4>Perfil</h4>
-          <label>Nome<input data-field="name" type="text"
-            oninput="document.getElementById('${id}').component.change('name',this.value)"></label>
-          ${errors.name ? `<small class="error">${errors.name}</small>` : ""}
-          <label>E-mail<input data-field="email" type="text"
-            oninput="document.getElementById('${id}').component.change('email',this.value)"></label>
-          ${errors.email ? `<small class="error">${errors.email}</small>` : ""}
-          <button onclick="document.getElementById('${id}').component.submit()">Validar perfil</button>
-          ${submitted ? "<strong>Perfil válido.</strong>" : ""}
-        </section>`;
-
         Object.assign(this.state, yield (this.element = ((element) => {
           element.id = id;
           element.component = this;
@@ -280,7 +297,18 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
             input.setSelectionRange(input.value.length, input.value.length);
           }
           return element;
-        })(template.content.firstElementChild)));
+        })(Object.assign(document.createElement("template"), {
+          innerHTML: `<section><h4>Perfil</h4>
+            <label>Nome<input data-field="name" type="text"
+              oninput="document.getElementById('${id}').component.change('name',this.value)"></label>
+            ${errors.name ? `<small class="error">${errors.name}</small>` : ""}
+            <label>E-mail<input data-field="email" type="text"
+              oninput="document.getElementById('${id}').component.change('email',this.value)"></label>
+            ${errors.email ? `<small class="error">${errors.email}</small>` : ""}
+            <button onclick="document.getElementById('${id}').component.submit()">Validar perfil</button>
+            ${submitted ? "<strong>Perfil válido.</strong>" : ""}
+          </section>`,
+        }).content.firstElementChild)));
       }
     }
 
@@ -306,17 +334,6 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
           .filter(row => row.name.toLowerCase().includes(query.toLowerCase()))
           .toSorted((a, b) => a[sort].localeCompare(b[sort]));
         const focused = this.element?.contains(document.activeElement);
-        const template = document.createElement("template");
-        template.innerHTML = `<section><h4>Clientes</h4>
-          <label>Pesquisar<input data-field="query" type="search"
-            oninput="document.getElementById('${id}').component.search(this.value)"></label>
-          <div class="actions">
-            <button onclick="document.getElementById('${id}').component.sort('name')">Ordenar nome</button>
-            <button onclick="document.getElementById('${id}').component.sort('status')">Ordenar status</button>
-          </div>
-          ${rows.map(row => `<div class="row"><b>${row.name}</b><span>${row.status}</span></div>`).join("") || "<p>Nenhum resultado.</p>"}
-        </section>`;
-
         Object.assign(this.state, yield (this.element = ((element) => {
           element.id = id;
           element.component = this;
@@ -328,7 +345,17 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
             input.setSelectionRange(input.value.length, input.value.length);
           }
           return element;
-        })(template.content.firstElementChild)));
+        })(Object.assign(document.createElement("template"), {
+          innerHTML: `<section><h4>Clientes</h4>
+            <label>Pesquisar<input data-field="query" type="search"
+              oninput="document.getElementById('${id}').component.search(this.value)"></label>
+            <div class="actions">
+              <button onclick="document.getElementById('${id}').component.sort('name')">Ordenar nome</button>
+              <button onclick="document.getElementById('${id}').component.sort('status')">Ordenar status</button>
+            </div>
+            ${rows.map(row => `<div class="row"><b>${row.name}</b><span>${row.status}</span></div>`).join("") || "<p>Nenhum resultado.</p>"}
+          </section>`,
+        }).content.firstElementChild)));
       }
     }
 
@@ -353,25 +380,24 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
         const { items, coupon } = this.state;
         const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
         const total = subtotal * (coupon ? 0.9 : 1);
-        const template = document.createElement("template");
-        template.innerHTML = `<section><h4>Carrinho</h4>
-          ${items.map(item => `<div class="row"><span>${item.name} · ${item.qty}</span>
-            <span class="actions">
-              <button onclick="document.getElementById('${id}').component.quantity('${item.id}',-1)">−</button>
-              <button onclick="document.getElementById('${id}').component.quantity('${item.id}',1)">+</button>
-            </span></div>`).join("")}
-          <button onclick="document.getElementById('${id}').component.coupon()">
-            ${coupon ? "Remover" : "Aplicar"} cupom 10%
-          </button>
-          <div class="row"><b>Total</b><strong>R$ ${total.toFixed(2).replace(".", ",")}</strong></div>
-        </section>`;
-
         Object.assign(this.state, yield (this.element = ((element) => {
           element.id = id;
           element.component = this;
           if (this.element?.isConnected) this.element.replaceWith(element);
           return element;
-        })(template.content.firstElementChild)));
+        })(Object.assign(document.createElement("template"), {
+          innerHTML: `<section><h4>Carrinho</h4>
+            ${items.map(item => `<div class="row"><span>${item.name} · ${item.qty}</span>
+              <span class="actions">
+                <button onclick="document.getElementById('${id}').component.quantity('${item.id}',-1)">−</button>
+                <button onclick="document.getElementById('${id}').component.quantity('${item.id}',1)">+</button>
+              </span></div>`).join("")}
+            <button onclick="document.getElementById('${id}').component.coupon()">
+              ${coupon ? "Remover" : "Aplicar"} cupom 10%
+            </button>
+            <div class="row"><b>Total</b><strong>R$ ${total.toFixed(2).replace(".", ",")}</strong></div>
+          </section>`,
+        }).content.firstElementChild)));
       }
     }
 
@@ -389,20 +415,19 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
       while (true) {
         const { columns } = this.state;
         const labels = { backlog: "Backlog", doing: "Em curso", done: "Feito" };
-        const template = document.createElement("template");
-        template.innerHTML = `<section><h4>Board de entrega</h4><div class="columns">
-          ${Object.entries(columns).map(([key, cards]) => `<div class="column"><b>${labels[key]}</b><ul>
-            ${cards.map(card => `<li>${card}${key !== "done" ? `
-              <button aria-label="Mover ${card}" onclick="document.getElementById('${id}').component.move('${card}','${key === "backlog" ? "doing" : "done"}')">→</button>` : ""}</li>`).join("")}
-          </ul></div>`).join("")}
-        </div></section>`;
-
         Object.assign(this.state, yield (this.element = ((element) => {
           element.id = id;
           element.component = this;
           if (this.element?.isConnected) this.element.replaceWith(element);
           return element;
-        })(template.content.firstElementChild)));
+        })(Object.assign(document.createElement("template"), {
+          innerHTML: `<section><h4>Board de entrega</h4><div class="columns">
+            ${Object.entries(columns).map(([key, cards]) => `<div class="column"><b>${labels[key]}</b><ul>
+              ${cards.map(card => `<li>${card}${key !== "done" ? `
+                <button aria-label="Mover ${card}" onclick="document.getElementById('${id}').component.move('${card}','${key === "backlog" ? "doing" : "done"}')">→</button>` : ""}</li>`).join("")}
+            </ul></div>`).join("")}
+          </div></section>`,
+        }).content.firstElementChild)));
       }
     }
 
@@ -421,23 +446,22 @@ element.component = this;</code></pre></article><article class="card"><h3>3. Mé
 
       while (true) {
         const { status, message } = this.state;
-        const template = document.createElement("template");
-        template.innerHTML = `<section><h4>Workspace</h4>
-          <div class="row"><span>Status</span><strong>${status}</strong></div>
-          <p class="${status === "error" ? "error" : ""}">${message}</p>
-          <div class="actions">
-            <button ${status === "pending" ? "disabled" : ""}
-              onclick="document.getElementById('${id}').component.sync()">Sincronizar</button>
-            <button onclick="document.getElementById('${id}').component.fail()">Simular falha</button>
-          </div>
-        </section>`;
-
         Object.assign(this.state, yield (this.element = ((element) => {
           element.id = id;
           element.component = this;
           if (this.element?.isConnected) this.element.replaceWith(element);
           return element;
-        })(template.content.firstElementChild)));
+        })(Object.assign(document.createElement("template"), {
+          innerHTML: `<section><h4>Workspace</h4>
+            <div class="row"><span>Status</span><strong>${status}</strong></div>
+            <p class="${status === "error" ? "error" : ""}">${message}</p>
+            <div class="actions">
+              <button ${status === "pending" ? "disabled" : ""}
+                onclick="document.getElementById('${id}').component.sync()">Sincronizar</button>
+              <button onclick="document.getElementById('${id}').component.fail()">Simular falha</button>
+            </div>
+          </section>`,
+        }).content.firstElementChild)));
       }
     }
 

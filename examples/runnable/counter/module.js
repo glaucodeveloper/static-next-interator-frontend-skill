@@ -30,25 +30,7 @@ function* CounterComponent({ id, props = {} }) {
   this.reset = () => this.next(initialState);
 
   while (true) {
-    const template = document.createElement("template");
     const idArgument = JSON.stringify(this.id);
-
-    template.innerHTML = /* html */ `
-      <section>
-        <h2 data-slot="label"></h2>
-        <output data-slot="counting"></output>
-        <p>
-          <button type="button" onclick="document.getElementById(${escapeHtmlAttr(idArgument)}).component.decrement(1)">−1</button>
-          <button type="button" onclick="document.getElementById(${escapeHtmlAttr(idArgument)}).component.increment(1)">+1</button>
-          <button type="button" onclick="document.getElementById(${escapeHtmlAttr(idArgument)}).component.increment(10)">+10</button>
-          <button type="button" onclick="document.getElementById(${escapeHtmlAttr(idArgument)}).component.reset()">reset</button>
-        </p>
-      </section>
-    `.trim();
-
-    if (template.content.childElementCount !== 1) {
-      throw new TypeError("CounterComponent deve produzir um único root");
-    }
 
     Object.assign(
       this.state,
@@ -60,7 +42,20 @@ function* CounterComponent({ id, props = {} }) {
 
         if (this.element?.isConnected) this.element.replaceWith(element);
         return element;
-      })(template.content.firstElementChild)),
+      })(Object.assign(document.createElement("template"), {
+        innerHTML: /* html */ `
+          <section>
+            <h2 data-slot="label"></h2>
+            <output data-slot="counting"></output>
+            <p>
+              <button type="button" onclick="document.getElementById(${escapeHtmlAttr(idArgument)}).component.decrement(1)">−1</button>
+              <button type="button" onclick="document.getElementById(${escapeHtmlAttr(idArgument)}).component.increment(1)">+1</button>
+              <button type="button" onclick="document.getElementById(${escapeHtmlAttr(idArgument)}).component.increment(10)">+10</button>
+              <button type="button" onclick="document.getElementById(${escapeHtmlAttr(idArgument)}).component.reset()">reset</button>
+            </p>
+          </section>
+        `.trim(),
+      }).content.firstElementChild)),
     );
   }
 }

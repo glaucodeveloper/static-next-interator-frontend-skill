@@ -8,6 +8,7 @@
 4. Por que o patch aparece depois do `yield`
 5. Identidade e substituição do root
 6. Inspiração em Effect/Effect-TS
+7. Pensamento linear do auto-state
 
 ## 1. Binder mínimo
 
@@ -52,22 +53,6 @@ function* CounterComponent({ id, props = {} }) {
   this.reset = () => this.next(initialState);
 
   while (true) {
-    const template = document.createElement("template");
-
-    template.innerHTML = /* html */ `
-      <section>
-        <p data-slot="label"></p>
-        <output data-slot="counting"></output>
-        <button onclick="document.getElementById('${id}').component.increment(1)">+1</button>
-        <button onclick="document.getElementById('${id}').component.increment(10)">+10</button>
-        <button onclick="document.getElementById('${id}').component.reset()">reset</button>
-      </section>
-    `.trim();
-
-    if (template.content.childElementCount !== 1) {
-      throw new TypeError("CounterComponent deve produzir um único root");
-    }
-
     Object.assign(
       this.state,
       yield (this.element = ((element) => {
@@ -85,7 +70,17 @@ function* CounterComponent({ id, props = {} }) {
         }
 
         return element;
-      })(template.content.firstElementChild)),
+      })(Object.assign(document.createElement("template"), {
+        innerHTML: /* html */ `
+          <section>
+            <p data-slot="label"></p>
+            <output data-slot="counting"></output>
+            <button onclick="document.getElementById('${id}').component.increment(1)">+1</button>
+            <button onclick="document.getElementById('${id}').component.increment(10)">+10</button>
+            <button onclick="document.getElementById('${id}').component.reset()">reset</button>
+          </section>
+        `.trim(),
+      }).content.firstElementChild)),
     );
   }
 }
@@ -96,8 +91,8 @@ function* CounterComponent({ id, props = {} }) {
 1. `component(CounterComponent, props)` cria `context` e o iterator nativo.
 2. `context.next()` inicia o corpo da `function*`.
 3. O generator inicializa `this.state`, `this.element` e os métodos públicos.
-4. `<template>` parseia o markup em um `DocumentFragment` em `template.content`.
-5. O único `HTMLElement` é extraído do fragmento.
+4. `Object.assign(document.createElement("template"), { innerHTML })` cria e preenche um template descartável sem variável local.
+5. `.content.firstElementChild` consome imediatamente o `DocumentFragment` e extrai o root.
 6. O root recebe `id` e `element.component = this`.
 7. Na primeira renderização não há root conectado para substituir.
 8. `yield element` devolve `{ value: element, done: false }`.
@@ -124,6 +119,55 @@ Essa única linha possui duas direções:
 - Entrada: o argumento da chamada seguinte, `next(patch)`, vira o valor da expressão suspensa e é entregue diretamente ao `Object.assign`.
 
 Por isso o `yield` é a fronteira do auto-state: entrega o `HTMLElement` atual e recebe o patch que o `Object.assign` aplica antes da próxima volta do loop.
+
+## Template descartável, nunca variável
+
+Não dê identidade local ao template. Escreva a criação, o preenchimento e o consumo na mesma expressão:
+
+```js
+Object.assign(document.createElement("template"), {
+  innerHTML: html,
+}).content.firstElementChild
+```
+
+O template não faz parte do estado nem da identidade do componente. É apenas o mecanismo descartável que materializa o `DocumentFragment`; somente o `HTMLElement` extraído entra em `this.element` e no `yield`.
+
+## 7. Pensamento linear do auto-state
+
+A forma de escrita representa a ordem temporal do programa. Ela não existe para reduzir linhas e não deve ser refatorada como preparação de template separada do `yield`.
+
+```js
+Object.assign(
+  this.state,
+  yield (this.element = ((element) => {
+    element.id = this.id;
+    element.component = this;
+    if (this.element?.isConnected) this.element.replaceWith(element);
+    return element;
+  })(Object.assign(document.createElement("template"), {
+    innerHTML: html,
+  }).content.firstElementChild)),
+);
+```
+
+Leia de fora para dentro e, depois da suspensão, de dentro para fora:
+
+1. `Object.assign(this.state, ...)` abre uma atualização ainda sem patch.
+2. O template descartável é criado, preenchido e consumido na própria posição de valor.
+3. O root recebe identidade, referência ao componente e substitui o root anterior.
+4. `yield` entrega esse root e suspende a execução antes de `Object.assign` poder terminar.
+5. Um método chama `this.next(statePatch)`.
+6. O `statePatch` passa a ser o valor da expressão `yield (...)`.
+7. `Object.assign` recebe esse valor como segundo argumento e conclui a atualização.
+8. O `while` continua e o template seguinte já lê `this.state` atualizado.
+
+Essa linearidade une três momentos sem criar um lifecycle paralelo:
+
+```text
+render atual → yield HTMLElement → next(statePatch) → assign state → próximo render
+```
+
+Separar o template em uma variável local sugere incorretamente que ele possui duração ou responsabilidade próprias. Neste paradigma, ele é somente uma etapa transitória da produção do valor entregue pelo `yield`; o que persiste é `this.state`, `this.element` e o iterator vivo.
 
 ## 5. Identidade do root
 
