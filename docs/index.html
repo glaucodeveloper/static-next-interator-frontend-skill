@@ -164,7 +164,7 @@
     .flow span { min-height: 4.5rem; display: grid; place-items: center; padding: .5rem; border: 1px solid var(--border); border-radius: .45rem; color: var(--muted); font-size: .85rem; text-align: center; }
     .flow b { color: var(--accent); font-size: 1.2rem; text-align: center; }
     #cenarios-avancados { display: none; }
-    #demonstracoes { display: none; }
+    #legacy-event-model { display: none; }
     .example-picker { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: end; max-width: 46rem; margin: 0 0 1.5rem; }
     .example-picker label { display: grid; gap: .45rem; color: var(--muted); font-size: .9rem; font-weight: 700; }
     .example-picker select { min-height: 2.8rem; padding: .55rem .75rem; border: 1px solid var(--border); border-radius: .45rem; background: #09111f; color: var(--text); font: inherit; }
@@ -292,6 +292,68 @@ while (true) {
   state = Object.assign(state, patch || {});
 }</code></pre>
       </div>
+      <div class="shell" style="margin-top: 2rem">
+        <details open>
+          <summary>1. Namespace e registro da instância</summary>
+          <p><code>window.CounterComponents</code> conserva todos os generators por id. <code>frontends[id]</code> é a instância persistente; <code>events[id]</code> é a superfície pública chamada pelo template.</p>
+          <pre><code>window.CounterComponents = window.CounterComponents || {};
+
+const CounterComponent = {
+  frontends: window.CounterComponents,
+  events: {},
+};</code></pre>
+        </details>
+        <details>
+          <summary>2. Generator, estado fechado e mount</summary>
+          <p>O generator preserva <code>state</code> entre renders. O primeiro yield retorna a função que pede o primeiro template e o insere no alvo.</p>
+          <pre><code>*frontend(id) {
+  let state = { counting: 0 };
+
+  yield function mount(target = document.body, position = "beforeend") {
+    const frontend = CounterComponent.frontends[id];
+    target.insertAdjacentHTML(position, frontend.next().value);
+  };</code></pre>
+        </details>
+        <details>
+          <summary>3. Handlers: template → events[id] → next(patch)</summary>
+          <p>O segundo yield expõe handlers. Eles localizam o root atual, avançam o generator com o patch e substituem somente esse root.</p>
+          <pre><code>yield {
+  addCountingState(number) {
+    const frontend = CounterComponent.frontends[id];
+    const element = document.querySelector(`#${CSS.escape(id)}`);
+    if (!frontend || !element) return;
+    element.outerHTML = frontend.next({ counting: number }).value;
+  },
+};</code></pre>
+        </details>
+        <details>
+          <summary>4. Template e auto-update do estado</summary>
+          <p>O loop produz a string HTML. Quando o handler chama <code>next(patch)</code>, o patch entra em <code>newState</code>; depois o generator atualiza <code>state</code> e no próximo avanço produz HTML novo.</p>
+          <pre><code>while (true) {
+  const newState = yield `&lt;div id="${id}"&gt;
+    &lt;span&gt;${state.counting}&lt;/span&gt;
+    &lt;button onclick="CounterComponent.events[id].addCountingState(${state.counting + 1})"&gt;
+      click!
+    &lt;/button&gt;
+  &lt;/div&gt;`;
+
+  state = Object.assign(state, newState || {});
+}</code></pre>
+        </details>
+        <details>
+          <summary>5. create(id): bootstrap completo</summary>
+          <p><code>create</code> avança os dois yields iniciais, armazena mount e handlers e devolve a montagem pronta para o consumidor.</p>
+          <pre><code>create(id) {
+  const frontend = this.frontend(id);
+  this.frontends[id] = frontend;
+  const mount = frontend.next().value;
+  this.events[id] = frontend.next().value;
+  return mount;
+}
+
+CounterComponent.create("counter-1")(document.body);</code></pre>
+        </details>
+      </div>
     </section>
 
     <section>
@@ -319,20 +381,23 @@ while (true) {
     <section id="demonstracoes">
       <div class="shell">
         <p class="eyebrow">Demonstrações guiadas</p>
-        <h2>Veja o contrato em ação, sem abstrações ocultas.</h2>
-        <p class="section-intro">Estas demonstrações conectam os conceitos principais da skill. A primeira executa um componente real nesta página; as demais mostram os limites entre evento, Interator, driver e validação.</p>
+        <h2>Do contador ao painel composto, sempre no mesmo generator.</h2>
+        <p class="section-intro">Selecione um nível. Cada demonstração expõe o generator persistente, o template HTML, o mapa de eventos e o patch que retorna ao loop para produzir a próxima interface.</p>
         <div class="example-picker">
           <label for="ui-example">Escolha uma interface complexa
             <select id="ui-example">
-              <option value="counter">Contador clássico com ações locais</option>
-              <option value="checkout">Checkout com validação e resumo</option>
-              <option value="crm">CRM com pipeline e tabela de leads</option>
-              <option value="kanban">Kanban com colunas e cartões</option>
-              <option value="analytics">Analytics com métricas e filtros</option>
-              <option value="inbox">Inbox com seleção e painel de leitura</option>
+              <option value="counter">Nível 1 — contador clássico</option>
+              <option value="checkout">Nível 2 — checkout com estado composto</option>
+              <option value="crm">Nível 3 — CRM com pipeline e eventos</option>
+              <option value="kanban">Nível 4 — kanban com componentes coordenados</option>
+              <option value="analytics">Nível 5 — analytics com dados derivados</option>
+              <option value="inbox">Nível 6 — inbox com seleção e painel</option>
             </select>
           </label>
           <span class="preview-chip">UI gallery · 6 cenários</span>
+        </div>
+        <div class="flow" aria-label="Fluxo do handler">
+          <span>onclick no template</span><b aria-hidden="true">→</b><span>events[id].handler()</span><b aria-hidden="true">→</b><span>frontend.next(patch) + outerHTML</span>
         </div>
 
         <div class="demo-layout">
@@ -343,7 +408,7 @@ while (true) {
             <div id="gallery-preview" class="demo-output" aria-live="polite"></div>
             <p id="gallery-trace" class="trace" aria-live="polite">Selecione um cenário para trocar apenas este preview e seu código.</p>
           </article>
-          <pre aria-label="Código do componente demonstrado"><code id="gallery-code">function* CheckoutTemplate({ id, props = {} }) {
+          <pre aria-label="Generator e handler demonstrados"><code id="gallery-code">function* CheckoutTemplate({ id, props = {} }) {
   let state = { email: "", payment: null, ...props };
   while (true) {
     const template = document.createElement("template");
@@ -352,6 +417,15 @@ while (true) {
     state = { ...state, ...statePatch };
   }
 }</code></pre>
+          <pre aria-label="Handler canônico"><code>events[id] = {
+  update(patch) {
+    const frontend = frontends[id];
+    const element = document.querySelector(`#${CSS.escape(id)}`);
+    if (frontend && element) {
+      element.outerHTML = frontend.next(patch).value;
+    }
+  },
+};</code></pre>
         </div>
 
         <div class="flow" aria-label="Fluxo de atualização do componente">
@@ -360,7 +434,7 @@ while (true) {
       </div>
     </section>
 
-    <section>
+    <section id="legacy-event-model">
       <div class="shell grid">
         <article class="card">
           <p class="demo-label">02 · evento local</p>
