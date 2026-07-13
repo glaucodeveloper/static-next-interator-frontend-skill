@@ -1,14 +1,13 @@
 # Frontend Generation
 
-Use `function*` em `AppFrontend.frontend()` para ordenar composicao, nao como modelo interno do componente.
+Use uma funcao geradora `frontend()` para ordenar composicao, nao como modelo interno do componente.
 
 ## Mantenha steps consistentes
 
 Use `children` como objeto indexado por nome em todos os steps:
 
 ```js
-const AppFrontend = {
-  *frontend({ rootSelector = "#app" } = {}) {
+function* frontend({ rootSelector = "#app" } = {}) {
     const root = yield { type: "resolveRoot", rootSelector };
     const interator = yield { type: "createInterator" };
     const topbar = yield {
@@ -24,8 +23,7 @@ const AppFrontend = {
 
     yield { type: "mount", root, interator, children: { topbar, home } };
     yield { type: "wireEvents", root, interator, children: { topbar, home } };
-  },
-};
+}
 ```
 
 ## Limite o driver
@@ -49,8 +47,8 @@ Nao faca o driver:
 ## Execute o generator
 
 ```js
-function runApp(appFrontend, executeStep) {
-  const app = appFrontend.frontend();
+function runApp(frontend, executeStep) {
+  const app = frontend();
   let cursor = app.next();
 
   while (!cursor.done) {

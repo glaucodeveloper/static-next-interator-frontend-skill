@@ -1,10 +1,10 @@
 # Driver Example
 
-Use `runApp()` somente como driver de `AppFrontend`. Preserve estes limites:
+Use `runApp()` somente como driver da funcao geradora `frontend`. Preserve estes limites:
 
 ```js
-function runApp(appFrontend, executeStep) {
-  const app = appFrontend.frontend();
+function runApp(frontend, executeStep) {
+  const app = frontend();
   let cursor = app.next();
 
   while (!cursor.done) {

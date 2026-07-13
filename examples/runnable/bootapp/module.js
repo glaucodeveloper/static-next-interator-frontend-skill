@@ -100,8 +100,7 @@ function createInterator() {
   };
 }
 
-const AppFrontend = {
-  *frontend({ rootSelector = "#app" } = {}) {
+function* frontend({ rootSelector = "#app" } = {}) {
     const root = yield { type: "resolveRoot", rootSelector };
     const interator = yield { type: "createInterator" };
     const topbar = yield {
@@ -135,8 +134,7 @@ const AppFrontend = {
       interator,
       children: { topbar, home, favorites },
     };
-  },
-};
+}
 
 function renderRoute(root, interator, children) {
   const route = interator.getSnapshot().route;
@@ -229,13 +227,13 @@ function executeStep(step, context) {
   throw new TypeError(`Step desconhecido: ${step.type}`);
 }
 
-function runApp(appFrontend) {
+function runApp(frontend) {
   const context = {
     root: null,
     interator: null,
     children: {},
   };
-  const app = appFrontend.frontend();
+  const app = frontend();
   let cursor = app.next();
 
   while (!cursor.done) {
@@ -245,4 +243,4 @@ function runApp(appFrontend) {
   return context;
 }
 
-window.appDebug = runApp(AppFrontend);
+window.appDebug = runApp(frontend);

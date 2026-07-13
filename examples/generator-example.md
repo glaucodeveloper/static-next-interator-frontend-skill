@@ -1,10 +1,9 @@
-# App Frontend Example
+# Frontend Generator Example
 
 Mantenha `children` como objeto e use um step `mount` distinto de `wireEvents`:
 
 ```js
-const AppFrontend = {
-  *frontend({ rootSelector = "#app" } = {}) {
+function* frontend({ rootSelector = "#app" } = {}) {
     const root = yield { type: "resolveRoot", rootSelector };
     const interator = yield { type: "createInterator" };
     const home = yield {
@@ -15,8 +14,7 @@ const AppFrontend = {
 
     yield { type: "mount", root, interator, children: { home } };
     yield { type: "wireEvents", root, interator, children: { home } };
-  },
-};
+}
 ```
 
 Faca o driver criar `home` com:

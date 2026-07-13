@@ -1,6 +1,6 @@
 ---
 name: static-next-interator-frontend-skill
-description: Build, migrate, refactor, or review framework-free vanilla JavaScript frontends that use live nextable components with DOM identity, state patches, template-created elements, bound local handlers, self-owned root replacement, optional AppFrontend generators, Interator coordination, and runtime contracts. Use when implementing or auditing this paradigm, especially component lifecycle, event ownership, routing composition, or runnable examples.
+description: Build, migrate, refactor, or review framework-free vanilla JavaScript frontends that use live nextable components with DOM identity, state patches, template-created elements, bound local handlers, self-owned root replacement, direct frontend generators, Interator coordination, and runtime contracts. Use when implementing or auditing this paradigm, especially component lifecycle, event ownership, routing composition, or runnable examples.
 ---
 
 # Static Next Interator Frontend
@@ -126,11 +126,10 @@ Leia [references/events.md](references/events.md) para escolher o protocolo loca
 
 ## Componha o app sem tomar o ciclo dos componentes
 
-Use `AppFrontend.frontend()` apenas para ordenar montagem e wiring:
+Use uma funcao geradora `frontend()` apenas para ordenar montagem e wiring:
 
 ```js
-const AppFrontend = {
-  *frontend({ rootSelector = "#app" } = {}) {
+function* frontend({ rootSelector = "#app" } = {}) {
     const root = yield { type: "resolveRoot", rootSelector };
     const interator = yield { type: "createInterator" };
     const topbar = yield {
@@ -146,8 +145,7 @@ const AppFrontend = {
 
     yield { type: "mount", root, interator, children: { topbar, home } };
     yield { type: "wireEvents", root, interator, children: { topbar, home } };
-  },
-};
+}
 ```
 
 Faca o driver:
@@ -189,7 +187,7 @@ Leia [references/runtime-types.md](references/runtime-types.md) ao definir compo
 Use os exemplos conforme a necessidade:
 
 - [examples/component-example.md](examples/component-example.md): componente stateful e stateless.
-- [examples/bootapp-example.md](examples/bootapp-example.md): driver do `AppFrontend`.
+- [examples/bootapp-example.md](examples/bootapp-example.md): driver da funcao `frontend`.
 - [examples/event-example.md](examples/event-example.md): markup de mensagens globais.
 - [examples/generator-example.md](examples/generator-example.md): sequencia de steps.
 - `examples/runnable/`: smoke tests manuais em navegador.

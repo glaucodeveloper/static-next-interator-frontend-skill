@@ -52,6 +52,7 @@ const forbidden = [
   [/\b(?:TODO|FIXME|TBD)\b:?/i, "marcador pendente"],
   [/onclick\s*=/i, "handler inline"],
   [/document\.getElementById\([^\n]+\.component/i, "dispatch local por lookup global"],
+  [/\bAppFrontend\b/, "wrapper AppFrontend legado"],
 ];
 
 for (const file of files.filter(file => !file.endsWith("scripts/validate.mjs"))) {
