@@ -83,7 +83,7 @@
 </head>
 <body>
   <a class="skip" href="#conteudo">Pular para o conteúdo</a>
-  <header><nav class="shell" aria-label="Principal"><a class="brand" href="#introducao">Static Next</a><ul><li><a href="#introducao">Introdução</a></li><li><a href="#anatomia">Anatomia</a></li><li><a href="#programas">Programas</a></li><li><a href="#transparencia">IA</a></li><li><a href="#galeria">Galeria</a></li><li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">GitHub</a></li></ul></nav></header>
+  <header><nav class="shell" aria-label="Principal"><a class="brand" href="#introducao">Static Next</a><ul><li><a href="#introducao">Introdução</a></li><li><a href="#web-components">Web Components</a></li><li><a href="#natividade">Natividade</a></li><li><a href="#anatomia">Anatomia</a></li><li><a href="#programas">Programas</a></li><li><a href="#transparencia">IA</a></li><li><a href="#galeria">Galeria</a></li><li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">GitHub</a></li></ul></nav></header>
   <main id="conteudo">
     <section id="introducao"><div class="shell">
       <p class="eyebrow">Antes do primeiro exemplo</p><h1>Uma interface inteira reduzida a uma sequência observável</h1>
@@ -99,6 +99,62 @@
       <p class="intro">Leia primeiro a criação do contexto; depois, a declaração de estado e métodos. Dentro do <code>while</code>, acompanhe a expressão de dentro para fora até o <code>yield</code>. Quando imaginar um clique, faça o caminho inverso: o método chama <code>next(StatePatch)</code>, o assign pendente termina e a volta seguinte produz outro root.</p>
       <div class="flow" aria-label="Preparação para leitura do exemplo"><span>contexto vivo</span><b>→</b><span>estado + métodos</span><b>→</b><span>root inline</span><b>→</b><span>yield</span><b>→</b><span>state patch</span><b>→</b><span>novo root</span></div>
       <p class="callout">O contador é pequeno de propósito, mas não é um pseudocódigo incompleto: ele contém a anatomia que os sete exemplos posteriores preservam ao adicionar validação, coleções, foco, composição e assincronicidade.</p>
+    </div></section>
+
+    <section id="web-components"><div class="shell">
+      <p class="eyebrow">Posicionamento no ecossistema</p>
+      <h2>Static Next e Web Components resolvem problemas diferentes</h2>
+      <p class="intro">Web Components oferecem um protocolo nativo para publicar novos elementos HTML, definir atributos observáveis, reagir à conexão com o documento e, quando necessário, encapsular marcação e estilos com Shadow DOM. Static Next não cria uma nova tag: ele organiza o estado local e a atualização de um root DOM como um programa generator explícito.</p>
+      <p class="intro">A diferença principal está na superfície de programação. Em um custom element, comportamento e atualização costumam atravessar classe, propriedades, atributos, callbacks de lifecycle e um método de render. Em Static Next, a linha temporal permanece concentrada em uma única <code>function*</code>: estado atual, root produzido, <code>yield</code>, <code>next(StatePatch)</code> e próximo root.</p>
+      <div class="cards">
+        <article class="card"><span class="step">A</span><h3>Identidade pública</h3><p>Web Components usam uma tag registrada por <code>customElements.define()</code>. Static Next usa uma instância comum ligada ao root por <code>element.component</code>, sem registro global de nomes de elementos.</p></article>
+        <article class="card"><span class="step">B</span><h3>Lifecycle</h3><p>Custom elements possuem callbacks como <code>connectedCallback</code> e <code>attributeChangedCallback</code>. Static Next usa o protocolo nativo do iterator: <code>yield</code> suspende e <code>next(patch)</code> retoma o mesmo programa.</p></article>
+        <article class="card"><span class="step">C</span><h3>Encapsulamento</h3><p>Shadow DOM é uma vantagem clara quando o componente precisa isolar estilos, slots e detalhes internos. Static Next privilegia DOM aberto e rastreável; encapsulamento pode ser acrescentado quando o produto realmente exige essa fronteira.</p></article>
+        <article class="card"><span class="step">D</span><h3>Distribuição</h3><p>Web Components são fortes como contrato HTML reutilizável entre aplicações e frameworks. Static Next é forte como modelo de estado local legível dentro de uma aplicação e também pode ser hospedado por um custom element.</p></article>
+      </div>
+      <div class="flow" aria-label="Comparação entre os modelos"><span>Web Component</span><b>→</b><span>tag + lifecycle</span><b>→</b><span>atributos e propriedades</span><b>→</b><span>render interno</span><b>→</b><span>DOM encapsulado ou aberto</span></div>
+      <div class="flow" aria-label="Fluxo Static Next"><span>Static Next</span><b>→</b><span>estado local</span><b>→</b><span>yield HTMLElement</span><b>→</b><span>next(StatePatch)</span><b>→</b><span>novo root</span></div>
+      <p class="callout"><strong>A vantagem central de Static Next é a transparência temporal.</strong> Ele reduz a distância entre evento, alteração de estado e DOM seguinte. Web Components continuam sendo a escolha natural quando a prioridade é oferecer uma API HTML pública, interoperável e opcionalmente encapsulada.</p>
+    </div></section>
+
+    <section id="natividade"><div class="shell">
+      <p class="eyebrow">Natividade primeiro · bundler depois</p>
+      <h2>O navegador já contém o runtime principal</h2>
+      <p class="intro">Static Next é composto por primitivas da própria plataforma: <code>function*</code>, iterators, <code>Object.assign</code>, <code>&lt;template&gt;</code>, <code>DocumentFragment</code>, <code>HTMLElement</code>, eventos DOM e <code>replaceWith()</code>. O componente não depende de um runtime de framework para existir, preservar estado ou atualizar sua região.</p>
+      <p class="intro">Isso permite executar a página diretamente no navegador, inspecionar o código sem uma etapa obrigatória de transformação e adotar build tooling somente quando ele entrega valor operacional. A natividade define o contrato; o bundler, quando presente, organiza a entrega.</p>
+      <div class="cards">
+        <article class="card"><span class="step">1</span><h3>Sem build obrigatório</h3><p>Um arquivo HTML com JavaScript padrão já consegue iniciar o iterator, renderizar o root e receber patches. O ciclo do componente não depende de compilador, plugin ou transformação proprietária.</p></article>
+        <article class="card"><span class="step">2</span><h3>Sem runtime paralelo</h3><p>O navegador executa o generator e manipula o DOM diretamente. Não existe scheduler, virtual DOM ou reconciliador intermediando a causalidade básica do componente.</p></article>
+        <article class="card"><span class="step">3</span><h3>Bundler como ferramenta</h3><p>Vite, Rollup, esbuild, webpack ou outra ferramenta podem agrupar módulos, otimizar assets, minificar e preparar diferentes alvos. Nenhuma delas precisa redefinir o protocolo <code>yield HTMLElement ↔ next(StatePatch)</code>.</p></article>
+        <article class="card"><span class="step">4</span><h3>Saída descartável</h3><p>Como o código-fonte permanece JavaScript e DOM reconhecíveis, trocar ou remover o bundler não exige reescrever o modelo mental do componente. A ferramenta de build não se torna a arquitetura da interface.</p></article>
+      </div>
+      <div class="flow" aria-label="Natividade do Static Next"><span>JavaScript padrão</span><b>→</b><span>generator nativo</span><b>→</b><span>template + fragment</span><b>→</b><span>HTMLElement vivo</span><b>→</b><span>DOM do navegador</span></div>
+      <div class="split">
+        <article class="card">
+          <span class="step">A</span>
+          <h3>Execução direta</h3>
+          <p>O mesmo contrato funciona em um script simples ou em módulos carregados pelo navegador.</p>
+          <pre><code>&lt;script type="module"&gt;
+  const counter = component(Counter, {
+    id: "counter-1",
+  });
+
+  document.querySelector("#app")
+    .append(counter.next().value);
+&lt;/script&gt;</code></pre>
+        </article>
+        <article class="card">
+          <span class="step">B</span>
+          <h3>Build opcional</h3>
+          <p>Adicione um bundler para necessidades de entrega, não para tornar o componente compreensível ou executável.</p>
+          <pre><code>código-fonte nativo
+  → módulos e assets
+  → otimização opcional
+  → navegador
+  → o mesmo iterator vivo</code></pre>
+        </article>
+      </div>
+      <p class="callout"><strong>O carro-chefe é a natividade.</strong> Um bundler pode melhorar distribuição, cache e tamanho final, mas permanece substituível. O programa de UI continua expresso em recursos padronizados da plataforma e pode ser lido sem reconstruir um runtime escondido.</p>
     </div></section>
 
     <section id="anatomia"><div class="shell">
