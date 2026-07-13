@@ -384,6 +384,187 @@ if (!Number.isFinite(nextState.counting)) {
       </div>
     </section>
 
+    <section id="cenarios-avancados">
+      <div class="shell">
+        <p class="eyebrow">Laboratório de cenários</p>
+        <h2>Nove exemplos para situações que aparecem em aplicações reais.</h2>
+        <p class="section-intro">Abra cada cenário para ver o contrato em contexto. Os exemplos são deliberadamente explícitos: deixam claro quem possui o estado, quem recebe a mensagem e onde o teardown acontece.</p>
+
+        <details>
+          <summary>01 · Formulário controlado com validação incremental</summary>
+          <p>O componente aceita somente patches conhecidos. A validação acontece antes do commit e o texto entra no DOM por propriedades, não por interpolação.</p>
+          <pre><code>next(statePatch = {}) {
+  const allowed = new Set(["email", "touched", "error"]);
+  if (Object.keys(statePatch).some(key =&gt; !allowed.has(key))) {
+    throw new TypeError("patch de formulário desconhecido");
+  }
+
+  const nextState = { ...this.state, ...statePatch };
+  if (typeof nextState.email !== "string") {
+    throw new TypeError("email deve ser string");
+  }
+
+  Object.assign(this.state, statePatch);
+  const element = renderForm();
+  element.querySelector("input").value = this.state.email;
+  element.querySelector("[data-error]").textContent = this.state.error;
+  return commitComponentElement(this, element);
+}</code></pre>
+        </details>
+
+        <details>
+          <summary>02 · Lista filtrável com estado derivado</summary>
+          <p>O estado guarda a consulta e os itens fonte. A lista filtrada é derivada durante a renderização; não há uma segunda fonte de verdade.</p>
+          <pre><code>next({ query = this.state.query } = {}) {
+  if (typeof query !== "string") throw new TypeError("query inválida");
+  this.state.query = query;
+
+  const visible = this.state.items.filter(item =&gt;
+    item.name.toLocaleLowerCase().includes(query.toLocaleLowerCase())
+  );
+  const element = renderListShell();
+  const list = element.querySelector("[data-list]");
+  for (const item of visible) {
+    const row = document.createElement("li");
+    row.textContent = item.name;
+    list.append(row);
+  }
+  return commitComponentElement(this, element);
+}</code></pre>
+        </details>
+
+        <details>
+          <summary>03 · Preservação explícita de foco após replaceWith()</summary>
+          <p>Substituir o root remove o foco. Quando a experiência depende dele, capture a intenção antes do commit e restaure-a depois de publicar o novo root.</p>
+          <pre><code>const activeSlot = this.element?.contains(document.activeElement)
+  ? document.activeElement.dataset.slot
+  : null;
+
+const result = commitComponentElement(this, element);
+
+if (activeSlot) {
+  result.value.querySelector(`[data-slot="${activeSlot}"]`)?.focus();
+}
+
+return result;</code></pre>
+        </details>
+
+        <details>
+          <summary>04 · Busca assíncrona com cancelamento e dispose()</summary>
+          <p>Requests não pertencem a <code>connect()</code>. O componente mantém o controller como recurso próprio e o encerra quando for descartado definitivamente.</p>
+          <pre><code>async search(term) {
+  this.request?.abort();
+  this.request = new AbortController();
+  this.next({ status: "loading", term });
+
+  const response = await fetch(`/api/search?q=${encodeURIComponent(term)}`, {
+    signal: this.request.signal,
+  });
+  const items = await response.json();
+  return this.next({ status: "ready", items });
+},
+
+dispose() {
+  this.request?.abort();
+  this.request = null;
+}</code></pre>
+        </details>
+
+        <details>
+          <summary>05 · Subscription externa com ownership e teardown</summary>
+          <p>Listeners de <code>window</code>, <code>document</code>, timers e subscriptions ficam fora do ciclo de renderização. A instância possui uma operação de início e outra de descarte.</p>
+          <pre><code>start() {
+  if (this.unsubscribe) return;
+  this.unsubscribe = sessionStore.subscribe(snapshot =&gt; {
+    this.next({ user: snapshot.user });
+  });
+},
+
+dispose() {
+  this.unsubscribe?.();
+  this.unsubscribe = null;
+}</code></pre>
+        </details>
+
+        <details>
+          <summary>06 · Rota global e atualização apenas do outlet</summary>
+          <p>O root do app delega a intenção. O Interator devolve quais átomos mudaram, e o driver atualiza a região correspondente sem remontar o app inteiro.</p>
+          <pre><code>root.addEventListener("click", event =&gt; {
+  const target = event.target.closest("[data-route]");
+  if (!target || !root.contains(target)) return;
+
+  const result = interator.dispatch({
+    type: "navigate",
+    route: target.dataset.route,
+  });
+
+  if (result.changed.includes("route")) {
+    renderRoute(outlet, children, result.snapshot.route);
+  }
+});</code></pre>
+        </details>
+
+        <details>
+          <summary>07 · Mutação otimista com rollback explícito</summary>
+          <p>O componente pode exibir uma intenção pendente, mas a confirmação remota precisa ter caminho de sucesso e falha claro; nenhum erro é silenciosamente absorvido.</p>
+          <pre><code>async toggleFavorite(id) {
+  const previous = this.state.favorites;
+  const favorites = toggle(previous, id);
+  this.next({ favorites, pendingId: id, error: "" });
+
+  try {
+    await api.saveFavorites(favorites);
+    return this.next({ pendingId: null });
+  } catch (error) {
+    return this.next({
+      favorites: previous,
+      pendingId: null,
+      error: "Não foi possível salvar. Tente novamente.",
+    });
+  }
+}</code></pre>
+        </details>
+
+        <details>
+          <summary>08 · Componente read-only com input de renderização</summary>
+          <p>Um componente sem estado local ainda é vivo porque preserva <code>element</code>. Ele recebe dados de renderização, publica seu root e compartilha o mesmo commit.</p>
+          <pre><code>function StatusBadge({ id }) {
+  return {
+    id,
+    element: null,
+    next({ label = "", tone = "neutral" } = {}) {
+      const template = document.createElement("template");
+      template.innerHTML = "&lt;span data-label&gt;&lt;/span&gt;";
+      const element = template.content.firstElementChild;
+      element.id = this.id;
+      element.dataset.tone = tone;
+      element.querySelector("[data-label]").textContent = label;
+      return commitComponentElement(this, element);
+    },
+  };
+}</code></pre>
+        </details>
+
+        <details>
+          <summary>09 · Modelos estritos para dados recebidos</summary>
+          <p>Contratos de runtime são úteis nas bordas: payloads de API, definições de rota e mensagens. Campos extras e números não finitos devem falhar antes de alcançarem a UI.</p>
+          <pre><code>const Route = define("Route", {
+  name: Type.string,
+  path: Type.string,
+  authenticated: Type.boolean,
+});
+
+const route = new Route({
+  name: "favorites",
+  path: "/favorites",
+  authenticated: true,
+});
+
+route.extra = "não permitido"; // lança TypeError</code></pre>
+        </details>
+      </div>
+    </section>
+
     <section id="documentacao">
       <div class="shell split">
         <div>
