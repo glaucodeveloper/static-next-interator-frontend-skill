@@ -163,6 +163,18 @@
     .flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; gap: .6rem; margin: 1.5rem 0 0; }
     .flow span { min-height: 4.5rem; display: grid; place-items: center; padding: .5rem; border: 1px solid var(--border); border-radius: .45rem; color: var(--muted); font-size: .85rem; text-align: center; }
     .flow b { color: var(--accent); font-size: 1.2rem; text-align: center; }
+    #cenarios-avancados { display: none; }
+    .example-picker { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: end; max-width: 46rem; margin: 0 0 1.5rem; }
+    .example-picker label { display: grid; gap: .45rem; color: var(--muted); font-size: .9rem; font-weight: 700; }
+    .example-picker select { min-height: 2.8rem; padding: .55rem .75rem; border: 1px solid var(--border); border-radius: .45rem; background: #09111f; color: var(--text); font: inherit; }
+    .preview-chip { padding: .6rem .75rem; border: 1px solid var(--accent); border-radius: .45rem; color: var(--accent-strong); font: .78rem ui-monospace, monospace; white-space: nowrap; }
+    .ui-preview { width: 100%; padding: .85rem; color: #dce7f7; font-size: .76rem; text-align: left; }
+    .ui-top, .ui-row { display: flex; justify-content: space-between; gap: .5rem; padding: .45rem 0; border-bottom: 1px solid #26364f; }
+    .ui-kpis, .ui-columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; margin: .65rem 0; }
+    .ui-kpis span, .ui-card { padding: .5rem; border: 1px solid #314460; border-radius: .25rem; background: #111d30; }
+    .ui-columns { grid-template-columns: repeat(3, 1fr); }
+    .ui-column { min-height: 5.4rem; padding: .35rem; border: 1px solid #314460; border-radius: .25rem; color: #95a9c7; }
+    .ui-column b { display: block; margin-bottom: .35rem; color: #dce7f7; font-size: .68rem; }
 
     footer { padding: 2rem 0 3rem; color: var(--muted); font-size: .9rem; }
     footer p { margin: 0; }
@@ -273,22 +285,28 @@ counter.next({ counting: 1 });</code></pre>
         <p class="eyebrow">Demonstrações guiadas</p>
         <h2>Veja o contrato em ação, sem abstrações ocultas.</h2>
         <p class="section-intro">Estas demonstrações conectam os conceitos principais da skill. A primeira executa um componente real nesta página; as demais mostram os limites entre evento, Interator, driver e validação.</p>
+        <div class="example-picker">
+          <label for="ui-example">Escolha uma interface complexa
+            <select id="ui-example">
+              <option value="checkout">Checkout com validação e resumo</option>
+              <option value="crm">CRM com pipeline e tabela de leads</option>
+              <option value="kanban">Kanban com colunas e cartões</option>
+              <option value="analytics">Analytics com métricas e filtros</option>
+              <option value="inbox">Inbox com seleção e painel de leitura</option>
+            </select>
+          </label>
+          <span class="preview-chip">UI gallery · 5 cenários</span>
+        </div>
 
         <div class="demo-layout">
           <article class="demo-stage">
-            <p class="demo-label">01 · componente stateful ao vivo</p>
-            <h3>Um root por atualização</h3>
-            <p>Os botões chamam <code>next(statePatch)</code>. O componente cria um novo elemento, liga o listener e substitui o root anterior.</p>
-            <div id="counter-demo" class="demo-output" aria-live="polite"></div>
-            <div class="demo-controls" aria-label="Controles do contador">
-              <button type="button" data-count="-1">−1</button>
-              <button type="button" data-count="1">+1</button>
-              <button type="button" data-count="10">+10</button>
-              <button type="button" data-reset>Resetar</button>
-            </div>
-            <p id="counter-trace" class="trace" aria-live="polite">Aguardando a primeira renderização.</p>
+            <p id="gallery-label" class="demo-label">01 · checkout</p>
+            <h3 id="gallery-title">Checkout com estado local</h3>
+            <p id="gallery-description">Campos, validação, resumo do pedido e confirmação ocupam o mesmo componente sem misturar eventos brutos no estado.</p>
+            <div id="gallery-preview" class="demo-output" aria-live="polite"></div>
+            <p id="gallery-trace" class="trace" aria-live="polite">Selecione um cenário para trocar apenas este preview e seu código.</p>
           </article>
-          <pre aria-label="Código do componente demonstrado"><code>function Counter({ id, props = {} }) {
+          <pre aria-label="Código do componente demonstrado"><code id="gallery-code">function CheckoutComponent({ id, props = {} }) {
   return {
     id,
     state: { counting: props.counting ?? 0 },
@@ -615,46 +633,59 @@ route.extra = "não permitido"; // lança TypeError</code></pre>
   </footer>
   <script>
     (() => {
-      const mount = document.querySelector("#counter-demo");
-      const trace = document.querySelector("#counter-trace");
-      const controls = document.querySelector(".demo-controls");
-
-      function Counter({ id, props = {} }) {
-        return {
-          id,
-          state: { counting: props.counting ?? 0 },
-          element: null,
-          next(statePatch = {}) {
-            if (!Number.isFinite(statePatch.counting ?? this.state.counting)) {
-              throw new TypeError("counting deve ser finito");
-            }
-            Object.assign(this.state, statePatch);
-            const template = document.createElement("template");
-            template.innerHTML = "<output aria-label='Valor atual'></output>";
-            const element = template.content.firstElementChild;
-            element.id = this.id;
-            element.textContent = this.state.counting;
-            element.component = this;
-            if (this.element?.isConnected) this.element.replaceWith(element);
-            this.element = element;
-            return { value: element, done: false };
-          },
-        };
+      const select = document.querySelector("#ui-example");
+      const preview = document.querySelector("#gallery-preview");
+      const label = document.querySelector("#gallery-label");
+      const title = document.querySelector("#gallery-title");
+      const description = document.querySelector("#gallery-description");
+      const code = document.querySelector("#gallery-code");
+      const trace = document.querySelector("#gallery-trace");
+      const examples = {
+        checkout: {
+          title: "Checkout com validação e resumo", label: "01 · checkout stateful",
+          description: "Endereço, pagamento, cupom e totais derivam de um único statePatch validado.",
+          markup: `<div class="ui-preview"><div class="ui-top"><b>Checkout</b><span>Pedido #1042</span></div><div class="ui-row"><span>Endereço de entrega</span><b>Completo</b></div><div class="ui-row"><span>Cartão final 4242</span><b>Editar</b></div><div class="ui-row"><span>Total</span><b>R$ 248,90</b></div></div>`,
+          code: `function CheckoutComponent({ id, props = {} }) {\n  return {\n    id, state: { address: "", payment: null, coupon: "", ...props },\n    element: null,\n    next(statePatch = {}) {\n      validateCheckoutPatch(statePatch);\n      Object.assign(this.state, statePatch);\n      const element = renderCheckout(this.state);\n      return commitComponentElement(this, element);\n    },\n  };\n}`
+        },
+        crm: {
+          title: "CRM com pipeline e leads", label: "02 · CRM composto",
+          description: "Filtros locais atualizam a tabela; mudanças de estágio são mensagens globais coordenadas pelo Interator.",
+          markup: `<div class="ui-preview"><div class="ui-top"><b>Pipeline comercial</b><span>12 leads</span></div><div class="ui-kpis"><span>R$ 84k<br>pipeline</span><span>7<br>propostas</span><span>3<br>ganhos</span></div><div class="ui-row"><b>Ana Lima</b><span>Qualificação · R$ 12k</span></div><div class="ui-row"><b>Studio Norte</b><span>Proposta · R$ 24k</span></div></div>`,
+          code: `function LeadTable({ id, props, interator }) {\n  return {\n    id, state: { query: "", leads: props.leads }, element: null,\n    connect(element) {\n      element.querySelector("[data-filter]")\n        .addEventListener("input", event => this.next({ query: event.currentTarget.value }));\n    },\n    moveLead(id, stage) {\n      return interator.dispatch({ type: "lead/move", id, stage });\n    },\n    next(patch = {}) { /* filtra e comita somente a tabela */ },\n  };\n}`
+        },
+        kanban: {
+          title: "Kanban com cartões e colunas", label: "03 · kanban com composição",
+          description: "Cada coluna é uma instância. O board recebe a intenção de mover um cartão e atualiza somente as colunas afetadas.",
+          markup: `<div class="ui-preview"><div class="ui-top"><b>Sprint 24</b><span>8 tarefas</span></div><div class="ui-columns"><div class="ui-column"><b>Backlog</b><div class="ui-card">Pesquisa</div></div><div class="ui-column"><b>Em curso</b><div class="ui-card">Checkout</div></div><div class="ui-column"><b>Feito</b><div class="ui-card">Tokens</div></div></div></div>`,
+          code: `function Board({ id, props, interator }) {\n  return {\n    id, element: null,\n    next({ columns = props.columns } = {}) {\n      const element = renderBoard(columns);\n      element.addEventListener("click", event => {\n        const card = event.target.closest("[data-card-id]");\n        if (card) interator.dispatch({ type: "card/select", id: card.dataset.cardId });\n      });\n      return commitComponentElement(this, element);\n    },\n  };\n}`
+        },
+        analytics: {
+          title: "Analytics com filtros e métricas", label: "04 · analytics derivado",
+          description: "O filtro de período é estado local; métricas e séries são dados derivados recebidos do Interator.",
+          markup: `<div class="ui-preview"><div class="ui-top"><b>Visão geral</b><span>Últimos 30 dias</span></div><div class="ui-kpis"><span>42.8k<br>visitas</span><span>6.4%<br>conversão</span><span>R$ 18.2k<br>receita</span></div><div class="ui-row"><span>Tráfego orgânico</span><b>+18.4%</b></div></div>`,
+          code: `function AnalyticsPanel({ id, props = {} }) {\n  return {\n    id, state: { period: "30d", ...props }, element: null,\n    next(patch = {}) {\n      Object.assign(this.state, patch);\n      const snapshot = analyticsStore.forPeriod(this.state.period);\n      const element = renderMetrics(snapshot);\n      return commitComponentElement(this, element);\n    },\n  };\n}`
+        },
+        inbox: {
+          title: "Inbox com seleção e leitura", label: "05 · inbox com foco",
+          description: "A lista preserva a mensagem selecionada e o painel de leitura é atualizado sem remontar a caixa inteira.",
+          markup: `<div class="ui-preview"><div class="ui-top"><b>Inbox</b><span>3 não lidas</span></div><div class="ui-row"><b>Projeto Aurora</b><span>Revisão aprovada</span></div><div class="ui-row"><b>Equipe de produto</b><span>Agenda da sprint</span></div><div class="ui-row"><b>Financeiro</b><span>Fatura disponível</span></div></div>`,
+          code: `function Inbox({ id, props = {} }) {\n  return {\n    id, state: { selectedId: null, messages: props.messages }, element: null,\n    selectMessage(id) { return this.next({ selectedId: id }); },\n    next(patch = {}) {\n      Object.assign(this.state, patch);\n      const element = renderInbox(this.state);\n      return commitComponentElement(this, element);\n    },\n  };\n}`
+        },
+      };
+      function renderExample() {
+        const example = examples[select.value];
+        label.textContent = example.label;
+        title.textContent = example.title;
+        description.textContent = example.description;
+        preview.replaceChildren();
+        const template = document.createElement("template");
+        template.innerHTML = example.markup;
+        preview.append(template.content.firstElementChild);
+        code.textContent = example.code;
+        trace.textContent = `Galeria: ${example.title}. O seletor troca apenas o preview e o trecho de implementação.`;
       }
-
-      const counter = Counter({ id: "demo-counter", props: { counting: 0 } });
-      mount.append(counter.next().value);
-      trace.textContent = "next() publicou o root inicial: value = <output>, done = false.";
-
-      controls.addEventListener("click", event => {
-        const button = event.target.closest("button");
-        if (!button) return;
-        const counting = button.hasAttribute("data-reset")
-          ? 0
-          : counter.state.counting + Number(button.dataset.count);
-        counter.next({ counting });
-        trace.textContent = `next({ counting: ${counting} }) substituiu apenas #demo-counter.`;
-      });
+      select.addEventListener("change", renderExample);
+      renderExample();
     })();
   </script>
 </body>
