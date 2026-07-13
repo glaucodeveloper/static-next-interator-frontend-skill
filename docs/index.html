@@ -150,6 +150,20 @@
     .callout { padding: clamp(1.4rem, 4vw, 2.5rem); border: 1px solid var(--accent); border-radius: .7rem; background: linear-gradient(120deg, rgb(34 197 94 / 14%), rgb(30 41 59 / 80%)); }
     .callout p { max-width: 62ch; margin: .6rem 0 0; color: var(--muted); }
 
+    .demo-layout { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 1rem; }
+    .demo-stage { padding: 1.4rem; border: 1px solid var(--border); border-radius: .65rem; background: var(--surface); }
+    .demo-stage > * + * { margin-top: 1rem; }
+    .demo-label { margin: 0; color: var(--accent-strong); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+    .demo-controls { display: flex; flex-wrap: wrap; gap: .65rem; }
+    .demo-controls button { min-height: 2.75rem; padding: .5rem .85rem; border: 1px solid var(--border); border-radius: .4rem; background: var(--surface-strong); color: var(--text); cursor: pointer; font: inherit; font-weight: 700; }
+    .demo-controls button:hover { border-color: var(--accent); color: var(--accent-strong); }
+    .demo-output { display: grid; min-height: 8rem; place-items: center; border: 1px dashed var(--border); border-radius: .45rem; background: #09111f; }
+    .demo-output output { color: var(--accent-strong); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 2.5rem; font-weight: 800; }
+    .trace { min-height: 4rem; padding: .85rem; border-left: 3px solid var(--accent); background: rgb(9 17 31 / 75%); color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .84rem; }
+    .flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; gap: .6rem; margin: 1.5rem 0 0; }
+    .flow span { min-height: 4.5rem; display: grid; place-items: center; padding: .5rem; border: 1px solid var(--border); border-radius: .45rem; color: var(--muted); font-size: .85rem; text-align: center; }
+    .flow b { color: var(--accent); font-size: 1.2rem; text-align: center; }
+
     footer { padding: 2rem 0 3rem; color: var(--muted); font-size: .9rem; }
     footer p { margin: 0; }
 
@@ -157,7 +171,9 @@
       .shell { width: min(100% - 2rem, 1120px); }
       .nav { align-items: flex-start; padding: .85rem 0; }
       nav ul { justify-content: flex-start; }
-      .signal, .grid, .split { grid-template-columns: 1fr; }
+      .signal, .grid, .split, .demo-layout { grid-template-columns: 1fr; }
+      .flow { grid-template-columns: 1fr; }
+      .flow b { transform: rotate(90deg); }
       .signal div { min-height: auto; }
       section { padding: 3.6rem 0; }
     }
@@ -180,6 +196,7 @@
       <nav aria-label="Navegacao principal">
         <ul>
           <li><a href="#contrato">Contrato</a></li>
+          <li><a href="#demonstracoes">Demonstrações</a></li>
           <li><a href="#documentacao">Documentacao</a></li>
           <li><a href="#contribuir">Contribuir</a></li>
           <li><a href="https://github.com/glaucodeveloper/static-next-interator-frontend-skill">GitHub</a></li>
@@ -251,6 +268,122 @@ counter.next({ counting: 1 });</code></pre>
       </div>
     </section>
 
+    <section id="demonstracoes">
+      <div class="shell">
+        <p class="eyebrow">Demonstrações guiadas</p>
+        <h2>Veja o contrato em ação, sem abstrações ocultas.</h2>
+        <p class="section-intro">Estas demonstrações conectam os conceitos principais da skill. A primeira executa um componente real nesta página; as demais mostram os limites entre evento, Interator, driver e validação.</p>
+
+        <div class="demo-layout">
+          <article class="demo-stage">
+            <p class="demo-label">01 · componente stateful ao vivo</p>
+            <h3>Um root por atualização</h3>
+            <p>Os botões chamam <code>next(statePatch)</code>. O componente cria um novo elemento, liga o listener e substitui o root anterior.</p>
+            <div id="counter-demo" class="demo-output" aria-live="polite"></div>
+            <div class="demo-controls" aria-label="Controles do contador">
+              <button type="button" data-count="-1">−1</button>
+              <button type="button" data-count="1">+1</button>
+              <button type="button" data-count="10">+10</button>
+              <button type="button" data-reset>Resetar</button>
+            </div>
+            <p id="counter-trace" class="trace" aria-live="polite">Aguardando a primeira renderização.</p>
+          </article>
+          <pre aria-label="Código do componente demonstrado"><code>function Counter({ id, props = {} }) {
+  return {
+    id,
+    state: { counting: props.counting ?? 0 },
+    element: null,
+
+    next(statePatch = {}) {
+      Object.assign(this.state, statePatch);
+
+      const template = document.createElement("template");
+      template.innerHTML = "&lt;output&gt;&lt;/output&gt;";
+      const element = template.content.firstElementChild;
+      element.id = this.id;
+      element.textContent = this.state.counting;
+      element.component = this;
+
+      if (this.element?.isConnected) {
+        this.element.replaceWith(element);
+      }
+      this.element = element;
+      return { value: element, done: false };
+    },
+  };
+}</code></pre>
+        </div>
+
+        <div class="flow" aria-label="Fluxo de atualização do componente">
+          <span>ação local</span><b aria-hidden="true">→</b><span>statePatch</span><b aria-hidden="true">→</b><span>novo root + commit</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="shell grid">
+        <article class="card">
+          <p class="demo-label">02 · evento local</p>
+          <h3>O DOM não entra no estado</h3>
+          <p>O listener lê <code>event.currentTarget</code>, calcula um patch pequeno e chama uma função do próprio componente. O objeto <code>Event</code> nunca é mesclado em <code>state</code>.</p>
+          <pre><code>handleAdd(event) {
+  const amount = Number(event.currentTarget.dataset.amount);
+  return this.next({
+    counting: this.state.counting + amount,
+  });
+}</code></pre>
+        </article>
+        <article class="card">
+          <p class="demo-label">03 · mensagem global</p>
+          <h3>O Interator decide o alcance</h3>
+          <p>Rota, sessão e sincronização pertencem ao app. A delegação normaliza a intenção e só então solicita a atualização da região afetada.</p>
+          <pre><code>const message = {
+  type: target.dataset.message,
+  route: target.dataset.route,
+};
+
+const result = interator.dispatch(message);
+if (result.changed.includes("route")) {
+  renderRoute(root, interator, children);
+}</code></pre>
+        </article>
+        <article class="card">
+          <p class="demo-label">04 · driver gerador</p>
+          <h3>Composição não toma o ciclo</h3>
+          <p>A função <code>frontend()</code> apenas ordena steps. O driver cria as instâncias, monta a primeira renderização e mantém o estado local dentro do componente.</p>
+          <pre><code>function runApp(frontend, executeStep) {
+  const app = frontend();
+  let cursor = app.next();
+
+  while (!cursor.done) {
+    cursor = app.next(executeStep(cursor.value));
+  }
+}</code></pre>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="shell split">
+        <div>
+          <p class="eyebrow">Contrato de runtime</p>
+          <h2>Falhe cedo quando um patch não pertence ao componente.</h2>
+          <p class="section-intro">A validação não substitui uma tipagem estática quando o projeto precisa dela. Ela protege as fronteiras que JavaScript puro deixa abertas: campos extras, números inválidos, ausência de dados obrigatórios e resultados fora do protocolo.</p>
+        </div>
+        <pre aria-label="Exemplo de validação de patch"><code>const allowedKeys = new Set(["counting", "label"]);
+
+for (const key of Object.keys(statePatch)) {
+  if (!allowedKeys.has(key)) {
+    throw new TypeError(`state.${key} não existe`);
+  }
+}
+
+if (!Number.isFinite(nextState.counting)) {
+  throw new TypeError("counting deve ser finito");
+}</code></pre>
+      </div>
+    </section>
+
     <section id="documentacao">
       <div class="shell split">
         <div>
@@ -299,5 +432,49 @@ counter.next({ counting: 1 });</code></pre>
   <footer>
     <div class="shell"><p>Static Next Interator Frontend · JavaScript sem framework, com limites explicitos.</p></div>
   </footer>
+  <script>
+    (() => {
+      const mount = document.querySelector("#counter-demo");
+      const trace = document.querySelector("#counter-trace");
+      const controls = document.querySelector(".demo-controls");
+
+      function Counter({ id, props = {} }) {
+        return {
+          id,
+          state: { counting: props.counting ?? 0 },
+          element: null,
+          next(statePatch = {}) {
+            if (!Number.isFinite(statePatch.counting ?? this.state.counting)) {
+              throw new TypeError("counting deve ser finito");
+            }
+            Object.assign(this.state, statePatch);
+            const template = document.createElement("template");
+            template.innerHTML = "<output aria-label='Valor atual'></output>";
+            const element = template.content.firstElementChild;
+            element.id = this.id;
+            element.textContent = this.state.counting;
+            element.component = this;
+            if (this.element?.isConnected) this.element.replaceWith(element);
+            this.element = element;
+            return { value: element, done: false };
+          },
+        };
+      }
+
+      const counter = Counter({ id: "demo-counter", props: { counting: 0 } });
+      mount.append(counter.next().value);
+      trace.textContent = "next() publicou o root inicial: value = <output>, done = false.";
+
+      controls.addEventListener("click", event => {
+        const button = event.target.closest("button");
+        if (!button) return;
+        const counting = button.hasAttribute("data-reset")
+          ? 0
+          : counter.state.counting + Number(button.dataset.count);
+        counter.next({ counting });
+        trace.textContent = `next({ counting: ${counting} }) substituiu apenas #demo-counter.`;
+      });
+    })();
+  </script>
 </body>
 </html>
